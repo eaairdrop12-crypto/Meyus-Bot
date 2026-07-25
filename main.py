@@ -122,6 +122,40 @@ SIIR_PERSONA = (
 )
 
 # =====================
+# /fal İÇİN VERİLER
+# =====================
+
+FAL_METINLERI = [
+    "Fincanında büyük bir haber görüyorum ☕ Yakında biri seni tatlıyla şaşırtacak 🍰",
+    "Telve şekli bana bir yol gösteriyor 🛣️ Önündeki hafta biraz koşuşturmaca ama sonu güzel 😌",
+    "Fal bana diyor ki: bugün gönlünden geçeni söylersen şaşırtıcı bir 'evet' duyabilirsin 💌",
+    "Yıldızlar senin adına parlıyor ✨ Bu hafta beklenmedik güzel bir haber gelebilir 🎉",
+    "Fincanda küçük bir kuş görüyorum 🐦 Uzaktan bir haber yolda, sabırlı ol",
+    "Telvede para şekli var 💰 Cüzdanına iyi bir sürpriz gelebilir, ama abartma 😄",
+    "Fal diyor ki bugün biraz dırdırcı olabilirsin, sabırlı biriyle konuş 😅",
+    "Fincanının kenarında bir kalp görüyorum ❤️ Aşk ya da dostluk konularında güzel gelişmeler var",
+    "Bu fal biraz esrarengiz... uzun lafın kısası: kahveni bitirip biraz dinlen 😴☕",
+    "Telvede bir yol ayrımı var 🔀 Yakında bir karar vermen gerekebilir, içgüdülerine güven",
+]
+
+# =====================
+# /soru İÇİN VERİLER
+# =====================
+
+SORU_LISTESI = [
+    "Hayatında hiç pişman olmadığın en çılgın kararın ne? 🤔",
+    "Bir günlüğüne süper güç sahibi olsan ne yapardın? 🦸",
+    "En sevdiğin çocukluk anın nedir? 🧸",
+    "Bir kitabın veya filmin dünyasında yaşasaydın hangisini seçerdin? 📖",
+    "Şu an ışınlanabilseydin nereye giderdin? 🌍",
+    "Ömür boyu tek bir yemek yiyecek olsan ne olurdu? 🍝",
+    "En son ne zaman gerçekten kahkaha attın, neye gülmüştün? 😂",
+    "Bir günlüğüne başka birinin hayatını yaşasaydın kim olurdu? 🎭",
+    "Hangi alışkanlığından vazgeçmek istiyorsun ama vazgeçemiyorsun? 😅",
+    "Sence grup içindeki en şanslı kişi kim? 🍀",
+]
+
+# =====================
 # AI CEVAP ÜRETME
 # =====================
 
@@ -344,6 +378,64 @@ async def siir_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     siir = await siir_uret(konu)
     await update.message.reply_text(f"📜 {konu.capitalize()} üzerine bir şiir:\n\n{siir}")
 
+async def aktivite_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.type not in ("group", "supergroup"):
+        await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
+        return
+
+    chat_id = update.effective_chat.id
+    user = update.effective_user
+    cursor.execute(
+        "SELECT message_count, last_message, last_seen FROM activity WHERE chat_id=? AND user_id=?",
+        (chat_id, user.id),
+    )
+    row = cursor.fetchone()
+
+    if row is None:
+        await update.message.reply_text("Henüz senden bir kayıt yok, biraz konuş bakalım 😄")
+        return
+
+    mesaj_sayisi, son_mesaj, son_gorulme = row
+    await update.message.reply_text(
+        f"📊 {user.first_name} için aktivite:\n"
+        f"• Toplam mesaj: {mesaj_sayisi}\n"
+        f"• Son görülme: {son_gorulme}\n"
+        f"• Son mesaj: {html.escape(son_mesaj)}"
+    )
+
+async def siralama_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.type not in ("group", "supergroup"):
+        await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
+        return
+
+    chat_id = update.effective_chat.id
+    cursor.execute(
+        "SELECT first_name, message_count FROM activity WHERE chat_id=? ORDER BY message_count DESC LIMIT 10",
+        (chat_id,),
+    )
+    satirlar = cursor.fetchall()
+
+    if not satirlar:
+        await update.message.reply_text("Henüz sıralama için yeterli veri yok 😄")
+        return
+
+    madalyalar = ["🥇", "🥈", "🥉"]
+    metin = "🏆 Grubun en aktifleri:\n\n"
+    for i, (ad, sayi) in enumerate(satirlar):
+        rozet = madalyalar[i] if i < 3 else f"{i + 1}."
+        metin += f"{rozet} {ad} — {sayi} mesaj\n"
+
+    await update.message.reply_text(metin)
+
+async def fal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    kullanici_adi = update.effective_user.first_name
+    fal = random.choice(FAL_METINLERI)
+    await update.message.reply_text(f"☕ {kullanici_adi}, fincanına bakıyorum...\n\n{fal}")
+
+async def soru_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    soru = random.choice(SORU_LISTESI)
+    await update.message.reply_text(f"💭 Sohbet sorusu: {soru}")
+
 # =====================
 # MESAJ İŞLEYİCİLERİ
 # =====================
@@ -385,12 +477,11 @@ async def keyword_listener(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(cevap)
             return
 
-    if update.effective_chat.type in ("group", "supergroup"):
-        saat = saat_tespit_et(metin_ham)
-        if saat:
-            add_xp(update.effective_user)
-            await saat_cevabi_gonder(update, saat)
-            return
+    saat = saat_tespit_et(metin_ham)
+    if saat:
+        add_xp(update.effective_user)
+        await saat_cevabi_gonder(update, saat)
+        return
 
     if update.effective_chat.type in ("group", "supergroup") and random.random() < 0.05:
         add_xp(update.effective_user)
@@ -447,15 +538,14 @@ def main():
     application.add_handler(CommandHandler("botac", botac_command))
     application.add_handler(CommandHandler("slap", slap_command))
     application.add_handler(CommandHandler("siir", siir_command))
+    application.add_handler(CommandHandler("aktivite", aktivite_command))
+    application.add_handler(CommandHandler("siralama", siralama_command))
+    application.add_handler(CommandHandler("fal", fal_command))
+    application.add_handler(CommandHandler("soru", soru_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, keyword_listener))
 
     # Zamanlanmış görevleri ayarla
     job_queue.run_daily(gunaydin_job, time(hour=7, tzinfo=TR_TZ))
     job_queue.run_daily(iyigeceler_job, time(hour=23, tzinfo=TR_TZ))
 
-    print("Bot başlatılıyor...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
-
-if __name__ == "__main__":
-    main()
-    
+    print("Bot başlatılıy
