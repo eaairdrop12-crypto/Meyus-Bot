@@ -210,6 +210,12 @@ async def keyword_listener(update: Update, context: ContextTypes.DEFAULT_TYPE):
         add_xp(update.effective_user)
         cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
         await update.message.reply_text(cevap)
+        return
+
+    if update.effective_chat.type == "private":
+        add_xp(update.effective_user)
+        cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
+        await update.message.reply_text(cevap)
 
 async def gunaydin_job(context: ContextTypes.DEFAULT_TYPE):
     for chat_id in get_all_group_chat_ids():
@@ -257,3 +263,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+        
