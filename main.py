@@ -55,7 +55,6 @@ KEYWORDS = {
     "nasılsın": "İyiyim, sen nasılsın? 😊",
     "günaydın": "Günaydın! Harika bir gün dilerim ☀️",
     "iyi geceler": "İyi geceler, tatlı rüyalar 🌙",
-    "bot": "Ben buradayım! Sana nasıl yardımcı olabilirim?",
     "yardım": "Elbette, neye ihtiyacın var?",
 }
 
