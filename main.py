@@ -255,5 +255,5 @@ async def main():
     print("Bot başlatılıyor...")
     await application.run_polling(allowed_updates=Update.ALL_TYPES)
 
-if __name__ == "__main__":
+ __name__ == "__main__":
     asyncio.run(main())
