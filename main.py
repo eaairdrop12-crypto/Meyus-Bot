@@ -31,8 +31,8 @@ def tr_lower(metin):
 
 # ÖNEMLİ: Token'ını BotFather'dan /revoke ile yenile ve
 # yeni token'ı buraya yaz (eski token'ı asla paylaşma).
-BOT_TOKEN = "7692589208:AAF6RRIaelarag9XN9J_NKhU_igJZ6yXtak"
-
+import os
+BOT_TOKEN = os.environ["BOT_TOKEN"]
 # =====================
 # VERİTABANI
 # =====================
