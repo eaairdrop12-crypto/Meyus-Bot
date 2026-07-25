@@ -6,7 +6,10 @@ from zoneinfo import ZoneInfo
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    ApplicationBuilder,
+  import asyncio
+from collections import defaultdict, deque
+import anthropic
+ApplicationBuilder,
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
