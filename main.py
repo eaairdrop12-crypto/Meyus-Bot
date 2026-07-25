@@ -7,7 +7,7 @@ from collections import defaultdict, deque
 from datetime import time, datetime
 from zoneinfo import ZoneInfo
 
-import anthropic
+from openai import OpenAI
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -31,12 +31,12 @@ def tr_lower(metin):
 # =====================
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
-if not BOT_TOKEN or not ANTHROPIC_API_KEY:
-    raise ValueError("BOT_TOKEN veya ANTHROPIC_API_KEY ortam değişkenleri eksik!")
+if not BOT_TOKEN or not GROQ_API_KEY:
+    raise ValueError("BOT_TOKEN veya GROQ_API_KEY ortam değişkenleri eksik!")
 
-ai_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+ai_client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
 sohbet_gecmisi = defaultdict(lambda: deque(maxlen=10))
 
 BOT_PERSONA = (
@@ -68,16 +68,16 @@ async def ai_cevap_uret(chat_id, kullanici_adi, mesaj):
     gecmis.append({"role": "user", "content": f"{kullanici_adi}: {mesaj}"})
 
     def cagri():
-        return ai_client.messages.create(
-            model="claude-sonnet-4-latest", # Model adını güncelle (varsa) veya mevcut olanı kullan
+        mesajlar = [{"role": "system", "content": BOT_PERSONA}] + list(gecmis)
+        return ai_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
             max_tokens=200,
-            system=BOT_PERSONA,
-            messages=list(gecmis),
+            messages=mesajlar,
         )
 
     try:
         response = await asyncio.to_thread(cagri)
-        cevap = response.content[0].text
+        cevap = response.choices[0].message.content
         gecmis.append({"role": "assistant", "content": cevap})
         return cevap
     except Exception as e:
@@ -263,4 +263,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-        
+    
