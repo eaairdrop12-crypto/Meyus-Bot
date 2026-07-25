@@ -247,12 +247,12 @@ async def main():
 
     # Handler'ları ekle
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, keyword_listener))
-    
     # Zamanlanmış görevleri ayarla
     job_queue.run_daily(gunaydin_job, time(hour=7, tzinfo=TR_TZ))
     job_queue.run_daily(iyigeceler_job, time(hour=23, tzinfo=TR_TZ))
 
     print("Bot başlatılıyor...")
     await application.run_polling(allowed_updates=Update.ALL_TYPES)
- __name__ == "__main__":
+
+if __name__ == "__main__":
     asyncio.run(main())
