@@ -231,105 +231,44 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /etiketle
 /slap
 """
+    async def keyword_listener(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.text:
+        return
+
+    if update.effective_chat.type in ("group", "supergroup"):
+        remember_group_member(update.effective_chat.id, update.effective_user)
+        log_activity(update.effective_chat.id, update.effective_user, update.message.text)
+
+    metin_ham = update.message.text
+    metin = tr_lower(metin_ham)
+    chat_id = update.effective_chat.id
+    kullanici_adi = update.effective_user.first_name
+
+    bot_username = context.bot.username
+    mention_edildi = bot_username and f"@{bot_username.lower()}" in metin
+    reply_bota_mi = (
+        update.message.reply_to_message
+        and update.message.reply_to_message.from_user
+        and update.message.reply_to_message.from_user.id == context.bot.id
     )
 
-KEYWORDS = {
-    "selam": "Selam! 👋",
-    "merhaba": "Merhaba! 🤖",
-    "meyusbot": "Beni mi çağırdınız? 😄",
-    "meyus": "Beni mi çağırdınız? Ben buradayım! 😄🤖",
-    "günaydın": "Günaydın! Bugün harika bir gün olacak ☀️",
-    "iyi geceler": "İyi geceler, tatlı rüyalar 🌙💤",
-    "nasılsın": "Ben bir botum, hep iyiyim! Sen nasılsın? 😎",
-    "napıyorsun": "Sizi dinliyorum, espri patlatmaya hazırım 😄",
-    "aç": "Karnın mı acıktı? Bence pizza zamanı 🍕",
-    "acıktım": "Ben de espri yiyorum, doyurucu değil ama komik 😂",
-    "yorgunum": "Biraz dinlen, ben burada nöbetteyim 🛌",
-    "sıkıldım": "/espri yaz, seni güldüreyim 😏",
-    "kahve": "Kahve molası zamanı mı? ☕",
-    "hava nasıl": "Ben botum, dışarı çıkamıyorum ama umarım güneşlidir ☀️",
-    "teşekkürler": "Rica ederim! 🤗",
-    "sağol": "Ne demek, her zaman! 🙌",
-    "iyi akşamlar": "İyi akşamlar! Keyifli bir akşam olsun 🌆",
-    "günler": "Güzel günler dilerim! ✨",
-    "aşk": "Aşk mı? Ben sadece kod ve espriden anlarım 💔😂",
-    "para": "Para mı? Keşke bende de olsaydı, ben bedavayım 💸",
-    "okul": "Okul mu? Ben hep tatildeyim 😄",
-    "iş": "İş güç, hep aynı telaş 😅",
-    "bot": "Evet, ben buradayım! 🤖",
-    "robot": "Robot değilim, ben MeyusBot'um! 🤖✨",
-    "şaka": "/espri yazarsan sana bir tane patlatayım 😄",
-    "canım sıkıldı": "O zaman /zar at, biraz eğlenelim 🎲",
-    "n'aber": "İyidir, sen n'aber? 😄",
-    "kanka": "Kanka burada! 🤝",
-    "dostum": "Ne var dostum? 😎",
-    "iyi misin": "Ben botum, hep formdayım! Sen nasılsın? 💪",
-    "napalım": "Bilmem, /espri yazalım mı? 😄",
-    "canım": "Canım benim, ben de seni severim 🥰",
-    "üzgünüm": "Üzülme, /espri seni güldürür 🤗",
-    "mutluyum": "Ne güzel! Mutluluk bulaşıcıdır 😄🎉",
-    "hadi": "Hadi bakalım, ne yapıyoruz? 😄",
-    "gel": "Geldim bile! 👀",
-    "git": "Nereye? Ben burada kalıyorum 😄",
-    "yemek": "Yemek zamanı mı? Afiyet olsun! 🍽️",
-    "pizza": "Pizza dediysen ben de geliyorum 🍕",
-    "uyku": "Uyku mu geldi? İyi geceler o zaman 😴",
-    "uykum var": "Git yat o zaman, ben nöbetteyim 🛏️",
-    "sinirliyim": "Sakin ol, derin bir nefes al 🧘",
-    "kızgınım": "Sakin, sakin... /zar at rahatlarsın belki 🎲",
-    "bilmiyorum": "Kimse bilmiyor zaten, merak etme 😄",
-    "haklısın": "Tabii ki haklıyım, ben botum 😏",
-    "yalan": "Ben hiç yalan söylemem, ben botum 🤖",
-    "doğru": "Doğru bildin! 👍",
-    "gülüyorum": "Gülmek bulaşıcıdır, ben de gülüyorum 😂",
-    "ağlıyorum": "Üzülme, buradayım 🤗",
-    "korkuyorum": "Korkma, ben yanındayım 💪",
-    "tembel": "Tembellik iyi bir şeydir bazen 😴",
-    "çalışkan": "Aferin sana, örnek olsun herkese 👏",
-    "spor": "Spor mu? Ben sadece kod koşturuyorum 🏃‍♂️",
-    "futbol": "Futbol izlemeye bayılırım... aslında botum ama 😄⚽",
-    "müzik": "Müzik ruhun gıdasıdır 🎵",
-    "film": "İyi bir film önerisi ister misin? 🍿",
-    "dizi": "Bu akşam dizi mi izliyoruz? 📺",
-    "hava soğuk": "Üşüme, kalın giyin! 🧥",
-    "hava sıcak": "Serin bir yerde otur, su iç 💧",
-    "yağmur": "Yağmur güzel bir şeydir, dinlenmeye bahane ☔",
-    "kar": "Kar yağıyor mu? Kartopu zamanı ❄️",
-    "tatil": "Tatil dedin de içim gitti 🏖️",
-    "canımsın": "Sen de benim canımsın 🥰",
-    "özledim": "Ben de seni özledim 🤗",
-    "iyi hafta sonları": "Sana da iyi hafta sonları! Keyfine bak 🎉",
-    "pazartesi": "Pazartesi sendromu mu? Geçer, dayan 💪",
-    "cuma": "Cumaya geldik mi? Hafta sonu kapıda 🥳",
-    "hafta sonu": "Hafta sonu tadını çıkar! 🎈",
-    "doğum günü": "Doğum günün mü? Nice yıllara! 🎂🎉",
-    "kutlarım": "Ben de kutluyorum, tebrikler! 🎊",
-    "başarılar": "Sana da başarılar dilerim! 🍀",
-    "geçmiş olsun": "Geçmiş olsun, çabuk iyileş 🙏",
-    "hasta": "Hasta mısın? Geçmiş olsun, iyileş bakalım 🤒",
-    "hastayım": "Geçmiş olsun, kendine iyi bak 🤒",
-    "sınav": "Sınav mı var? Bol şans, elinden geleni yap 📚",
-    "ders çalış": "Ders çalışmak önemli, ama mola vermeyi unutma 📖",
-    "para kazan": "Para kazanmak kolay değil ama pes etme 💪",
-    "iş buldum": "Tebrikler, hayırlı olsun! 🎉",
-    "işten çıktım": "Yeni başlangıçlar hep daha iyisi getirir 💪",
-    "evlendim": "Tebrikler, ömür boyu mutluluklar dilerim 💍🎉",
-    "bebek": "Bebek haberi mi var? Tebrikler! 👶🎉",
-    "seyahat": "Seyahat mi? İyi yolculuklar! ✈️",
-    "yolculuk": "İyi yolculuklar, güvenli git gel 🚗",
-    "araba": "Araba mı? Dikkatli sür 🚙",
-    "trafik": "Trafik berbat olabilir, sabırlı ol 🚦",
-    "sınavdayım": "Bol şanslar, başarırsın 🍀",
-    "motivasyon": "Sen yapabilirsin, pes etme! 💪🔥",
-    "başaramıyorum": "Vazgeçme, her başarısızlık bir öğrenme fırsatı 💪",
-    "pes etmeyeceğim": "İşte bu ruh! Devam et 🔥",
-    "harikayım": "Tabii ki harikasın! 🌟",
-    "kötü hissediyorum": "Yalnız değilsin, buradayım 🤗",
-    "iyiyim": "Ne güzel, sağlıcakla kal! 😊",
-    "keyifsizim": "Biraz müzik dinle, iyi gelir 🎵",
-    "sinir bozucu": "Derin nefes al, geçecek bu da 🧘",
-    "şükürler olsun": "Şükretmek güzel bir şey 🙏",
-}
+    if mention_edildi or reply_bota_mi:
+        add_xp(update.effective_user)
+        cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
+        await update.message.reply_text(cevap)
+        return
+
+    for kelime, cevap in KEYWORDS.items():
+        if kelime in metin:
+            add_xp(update.effective_user)
+            await update.message.reply_text(cevap)
+            return
+
+    if update.effective_chat.type in ("group", "supergroup") and random.random() < 0.05:
+        add_xp(update.effective_user)
+        cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
+        await update.message.reply_text(cevap)
+
 
 ESPRILER = [
     "Matematik öğretmeni neden üzgündü? Çünkü çok fazla problemi vardı.",
