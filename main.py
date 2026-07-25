@@ -548,7 +548,7 @@ def main():
     job_queue.run_daily(gunaydin_job, time(hour=7, tzinfo=TR_TZ))
     job_queue.run_daily(iyigeceler_job, time(hour=23, tzinfo=TR_TZ))
 
-print("Bot başlatılıyor...")
+    print("Bot başlatılıyor...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
