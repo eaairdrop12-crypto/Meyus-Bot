@@ -1,15 +1,16 @@
 import html
+import os
 import random
+import asyncio
 import sqlite3
+from collections import defaultdict, deque
 from datetime import time, datetime
 from zoneinfo import ZoneInfo
 
+import anthropic
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-  import asyncio
-from collections import defaultdict, deque
-import anthropic
-ApplicationBuilder,
+    ApplicationBuilder,
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
@@ -32,10 +33,8 @@ def tr_lower(metin):
 # BOT AYARLARI
 # =====================
 
-# ÖNEMLİ: Token'ını BotFather'dan /revoke ile yenile ve
-# yeni token'ı buraya yaz (eski token'ı asla paylaşma).
-import os
 BOT_TOKEN = os.environ["BOT_TOKEN"]
+
 ai_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 sohbet_gecmisi = defaultdict(lambda: deque(maxlen=10))
 
@@ -45,6 +44,7 @@ BOT_PERSONA = (
     "bir üslubun var, emoji kullanabilirsin ama abartma. Cevapların 1-3 "
     "cümleyi geçmesin, sohbet havasında ol, resmi konuşma."
 )
+
 
 async def ai_cevap_uret(chat_id, kullanici_adi, mesaj):
     gecmis = sohbet_gecmisi[chat_id]
@@ -65,6 +65,7 @@ async def ai_cevap_uret(chat_id, kullanici_adi, mesaj):
         return cevap
     except Exception:
         return "Şu an düşüncelerim biraz karışık, birazdan tekrar dene 😅"
+
 # =====================
 # VERİTABANI
 # =====================
@@ -231,44 +232,105 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /etiketle
 /slap
 """
-    async def keyword_listener(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text:
-        return
-
-    if update.effective_chat.type in ("group", "supergroup"):
-        remember_group_member(update.effective_chat.id, update.effective_user)
-        log_activity(update.effective_chat.id, update.effective_user, update.message.text)
-
-    metin_ham = update.message.text
-    metin = tr_lower(metin_ham)
-    chat_id = update.effective_chat.id
-    kullanici_adi = update.effective_user.first_name
-
-    bot_username = context.bot.username
-    mention_edildi = bot_username and f"@{bot_username.lower()}" in metin
-    reply_bota_mi = (
-        update.message.reply_to_message
-        and update.message.reply_to_message.from_user
-        and update.message.reply_to_message.from_user.id == context.bot.id
     )
 
-    if mention_edildi or reply_bota_mi:
-        add_xp(update.effective_user)
-        cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
-        await update.message.reply_text(cevap)
-        return
-
-    for kelime, cevap in KEYWORDS.items():
-        if kelime in metin:
-            add_xp(update.effective_user)
-            await update.message.reply_text(cevap)
-            return
-
-    if update.effective_chat.type in ("group", "supergroup") and random.random() < 0.05:
-        add_xp(update.effective_user)
-        cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
-        await update.message.reply_text(cevap)
-
+KEYWORDS = {
+    "selam": "Selam! 👋",
+    "merhaba": "Merhaba! 🤖",
+    "meyusbot": "Beni mi çağırdınız? 😄",
+    "meyus": "Beni mi çağırdınız? Ben buradayım! 😄🤖",
+    "günaydın": "Günaydın! Bugün harika bir gün olacak ☀️",
+    "iyi geceler": "İyi geceler, tatlı rüyalar 🌙💤",
+    "nasılsın": "Ben bir botum, hep iyiyim! Sen nasılsın? 😎",
+    "napıyorsun": "Sizi dinliyorum, espri patlatmaya hazırım 😄",
+    "aç": "Karnın mı acıktı? Bence pizza zamanı 🍕",
+    "acıktım": "Ben de espri yiyorum, doyurucu değil ama komik 😂",
+    "yorgunum": "Biraz dinlen, ben burada nöbetteyim 🛌",
+    "sıkıldım": "/espri yaz, seni güldüreyim 😏",
+    "kahve": "Kahve molası zamanı mı? ☕",
+    "hava nasıl": "Ben botum, dışarı çıkamıyorum ama umarım güneşlidir ☀️",
+    "teşekkürler": "Rica ederim! 🤗",
+    "sağol": "Ne demek, her zaman! 🙌",
+    "iyi akşamlar": "İyi akşamlar! Keyifli bir akşam olsun 🌆",
+    "günler": "Güzel günler dilerim! ✨",
+    "aşk": "Aşk mı? Ben sadece kod ve espriden anlarım 💔😂",
+    "para": "Para mı? Keşke bende de olsaydı, ben bedavayım 💸",
+    "okul": "Okul mu? Ben hep tatildeyim 😄",
+    "iş": "İş güç, hep aynı telaş 😅",
+    "bot": "Evet, ben buradayım! 🤖",
+    "robot": "Robot değilim, ben MeyusBot'um! 🤖✨",
+    "şaka": "/espri yazarsan sana bir tane patlatayım 😄",
+    "canım sıkıldı": "O zaman /zar at, biraz eğlenelim 🎲",
+    "n'aber": "İyidir, sen n'aber? 😄",
+    "kanka": "Kanka burada! 🤝",
+    "dostum": "Ne var dostum? 😎",
+    "iyi misin": "Ben botum, hep formdayım! Sen nasılsın? 💪",
+    "napalım": "Bilmem, /espri yazalım mı? 😄",
+    "canım": "Canım benim, ben de seni severim 🥰",
+    "üzgünüm": "Üzülme, /espri seni güldürür 🤗",
+    "mutluyum": "Ne güzel! Mutluluk bulaşıcıdır 😄🎉",
+    "hadi": "Hadi bakalım, ne yapıyoruz? 😄",
+    "gel": "Geldim bile! 👀",
+    "git": "Nereye? Ben burada kalıyorum 😄",
+    "yemek": "Yemek zamanı mı? Afiyet olsun! 🍽️",
+    "pizza": "Pizza dediysen ben de geliyorum 🍕",
+    "uyku": "Uyku mu geldi? İyi geceler o zaman 😴",
+    "uykum var": "Git yat o zaman, ben nöbetteyim 🛏️",
+    "sinirliyim": "Sakin ol, derin bir nefes al 🧘",
+    "kızgınım": "Sakin, sakin... /zar at rahatlarsın belki 🎲",
+    "bilmiyorum": "Kimse bilmiyor zaten, merak etme 😄",
+    "haklısın": "Tabii ki haklıyım, ben botum 😏",
+    "yalan": "Ben hiç yalan söylemem, ben botum 🤖",
+    "doğru": "Doğru bildin! 👍",
+    "gülüyorum": "Gülmek bulaşıcıdır, ben de gülüyorum 😂",
+    "ağlıyorum": "Üzülme, buradayım 🤗",
+    "korkuyorum": "Korkma, ben yanındayım 💪",
+    "tembel": "Tembellik iyi bir şeydir bazen 😴",
+    "çalışkan": "Aferin sana, örnek olsun herkese 👏",
+    "spor": "Spor mu? Ben sadece kod koşturuyorum 🏃‍♂️",
+    "futbol": "Futbol izlemeye bayılırım... aslında botum ama 😄⚽",
+    "müzik": "Müzik ruhun gıdasıdır 🎵",
+    "film": "İyi bir film önerisi ister misin? 🍿",
+    "dizi": "Bu akşam dizi mi izliyoruz? 📺",
+    "hava soğuk": "Üşüme, kalın giyin! 🧥",
+    "hava sıcak": "Serin bir yerde otur, su iç 💧",
+    "yağmur": "Yağmur güzel bir şeydir, dinlenmeye bahane ☔",
+    "kar": "Kar yağıyor mu? Kartopu zamanı ❄️",
+    "tatil": "Tatil dedin de içim gitti 🏖️",
+    "canımsın": "Sen de benim canımsın 🥰",
+    "özledim": "Ben de seni özledim 🤗",
+    "iyi hafta sonları": "Sana da iyi hafta sonları! Keyfine bak 🎉",
+    "pazartesi": "Pazartesi sendromu mu? Geçer, dayan 💪",
+    "cuma": "Cumaya geldik mi? Hafta sonu kapıda 🥳",
+    "hafta sonu": "Hafta sonu tadını çıkar! 🎈",
+    "doğum günü": "Doğum günün mü? Nice yıllara! 🎂🎉",
+    "kutlarım": "Ben de kutluyorum, tebrikler! 🎊",
+    "başarılar": "Sana da başarılar dilerim! 🍀",
+    "geçmiş olsun": "Geçmiş olsun, çabuk iyileş 🙏",
+    "hasta": "Hasta mısın? Geçmiş olsun, iyileş bakalım 🤒",
+    "hastayım": "Geçmiş olsun, kendine iyi bak 🤒",
+    "sınav": "Sınav mı var? Bol şans, elinden geleni yap 📚",
+    "ders çalış": "Ders çalışmak önemli, ama mola vermeyi unutma 📖",
+    "para kazan": "Para kazanmak kolay değil ama pes etme 💪",
+    "iş buldum": "Tebrikler, hayırlı olsun! 🎉",
+    "işten çıktım": "Yeni başlangıçlar hep daha iyisi getirir 💪",
+    "evlendim": "Tebrikler, ömür boyu mutluluklar dilerim 💍🎉",
+    "bebek": "Bebek haberi mi var? Tebrikler! 👶🎉",
+    "seyahat": "Seyahat mi? İyi yolculuklar! ✈️",
+    "yolculuk": "İyi yolculuklar, güvenli git gel 🚗",
+    "araba": "Araba mı? Dikkatli sür 🚙",
+    "trafik": "Trafik berbat olabilir, sabırlı ol 🚦",
+    "sınavdayım": "Bol şanslar, başarırsın 🍀",
+    "motivasyon": "Sen yapabilirsin, pes etme! 💪🔥",
+    "başaramıyorum": "Vazgeçme, her başarısızlık bir öğrenme fırsatı 💪",
+    "pes etmeyeceğim": "İşte bu ruh! Devam et 🔥",
+    "harikayım": "Tabii ki harikasın! 🌟",
+    "kötü hissediyorum": "Yalnız değilsin, buradayım 🤗",
+    "iyiyim": "Ne güzel, sağlıcakla kal! 😊",
+    "keyifsizim": "Biraz müzik dinle, iyi gelir 🎵",
+    "sinir bozucu": "Derin nefes al, geçecek bu da 🧘",
+    "şükürler olsun": "Şükretmek güzel bir şey 🙏",
+}
 
 ESPRILER = [
     "Matematik öğretmeni neden üzgündü? Çünkü çok fazla problemi vardı.",
@@ -456,13 +518,35 @@ async def keyword_listener(update: Update, context: ContextTypes.DEFAULT_TYPE):
         remember_group_member(update.effective_chat.id, update.effective_user)
         log_activity(update.effective_chat.id, update.effective_user, update.message.text)
 
-    metin = tr_lower(update.message.text)
+    metin_ham = update.message.text
+    metin = tr_lower(metin_ham)
+    chat_id = update.effective_chat.id
+    kullanici_adi = update.effective_user.first_name
+
+    bot_username = context.bot.username
+    mention_edildi = bot_username and f"@{bot_username.lower()}" in metin
+    reply_bota_mi = (
+        update.message.reply_to_message
+        and update.message.reply_to_message.from_user
+        and update.message.reply_to_message.from_user.id == context.bot.id
+    )
+
+    if mention_edildi or reply_bota_mi:
+        add_xp(update.effective_user)
+        cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
+        await update.message.reply_text(cevap)
+        return
 
     for kelime, cevap in KEYWORDS.items():
         if kelime in metin:
             add_xp(update.effective_user)
             await update.message.reply_text(cevap)
-            break
+            return
+
+    if update.effective_chat.type in ("group", "supergroup") and random.random() < 0.05:
+        add_xp(update.effective_user)
+        cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
+        await update.message.reply_text(cevap)
 
 # =====================
 # OTOMATİK GÜNAYDIN / İYİ GECELER
@@ -502,25 +586,4 @@ async def iyigeceler_job(context: ContextTypes.DEFAULT_TYPE):
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("help", help_cmd))
-app.add_handler(CommandHandler("espri", espri))
-app.add_handler(CommandHandler("zar", zar))
-app.add_handler(CommandHandler("coin", coin))
-app.add_handler(CommandHandler("profil", profil))
-app.add_handler(CommandHandler("siir", siir_gonder))
-app.add_handler(CommandHandler("aktifler", aktifler))
-app.add_handler(CommandHandler("sondurum", sondurum))
-app.add_handler(CommandHandler("kimvar", kimvar))
-app.add_handler(CommandHandler("etiketle", etiketle))
-app.add_handler(CommandHandler("slap", slap))
-app.add_handler(CallbackQueryHandler(siir_buton_callback, pattern="^siir_gonder$"))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, keyword_listener))
-
-app.job_queue.run_daily(gunaydin_job, time=time(hour=8, minute=0, tzinfo=TR_TZ))
-app.job_queue.run_daily(iyigeceler_job, time=time(hour=23, minute=0, tzinfo=TR_TZ))
-
-print("🤖 MeyusBot çalışıyor...")
-
-app.run_polling()
-  
+app.add_handle
