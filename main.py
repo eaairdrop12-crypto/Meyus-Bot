@@ -77,7 +77,7 @@ async def ai_cevap_uret(chat_id, kullanici_adi, mesaj):
 
     try:
         response = await asyncio.to_thread(cagri)
-        cevap = response.content.text
+        cevap = response.content[0].text
         gecmis.append({"role": "assistant", "content": cevap})
         return cevap
     except Exception as e:
@@ -241,19 +241,19 @@ async def iyigeceler_job(context: ContextTypes.DEFAULT_TYPE):
 # BAŞLATMA FONKSİYONU
 # =====================
 
-async def main():
+def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     job_queue = application.job_queue
 
     # Handler'ları ekle
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, keyword_listener))
-   
+
     # Zamanlanmış görevleri ayarla
     job_queue.run_daily(gunaydin_job, time(hour=7, tzinfo=TR_TZ))
     job_queue.run_daily(iyigeceler_job, time(hour=23, tzinfo=TR_TZ))
 
     print("Bot başlatılıyor...")
-    await application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
