@@ -36,6 +36,35 @@ def tr_lower(metin):
 # yeni token'ı buraya yaz (eski token'ı asla paylaşma).
 import os
 BOT_TOKEN = os.environ["BOT_TOKEN"]
+ai_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+sohbet_gecmisi = defaultdict(lambda: deque(maxlen=10))
+
+BOT_PERSONA = (
+    "Sen MeyusBot adında, bir Telegram grubunda yaşayan samimi, esprili ve "
+    "kısa cevaplar veren bir yapay zekasın. Türkçe konuşuyorsun, arkadaşça "
+    "bir üslubun var, emoji kullanabilirsin ama abartma. Cevapların 1-3 "
+    "cümleyi geçmesin, sohbet havasında ol, resmi konuşma."
+)
+
+async def ai_cevap_uret(chat_id, kullanici_adi, mesaj):
+    gecmis = sohbet_gecmisi[chat_id]
+    gecmis.append({"role": "user", "content": f"{kullanici_adi}: {mesaj}"})
+
+    def cagri():
+        return ai_client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=200,
+            system=BOT_PERSONA,
+            messages=list(gecmis),
+        )
+
+    try:
+        response = await asyncio.to_thread(cagri)
+        cevap = response.content[0].text
+        gecmis.append({"role": "assistant", "content": cevap})
+        return cevap
+    except Exception:
+        return "Şu an düşüncelerim biraz karışık, birazdan tekrar dene 😅"
 # =====================
 # VERİTABANI
 # =====================
