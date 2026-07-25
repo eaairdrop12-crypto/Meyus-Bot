@@ -170,6 +170,24 @@ def log_activity(chat_id, user, mesaj_metni):
     db.commit()
 
 # =====================
+# KOMUTLAR
+# =====================
+
+async def herkes_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.type not in ("group", "supergroup"):
+        await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
+        return
+
+    chat_id = update.effective_chat.id
+    etiketler = mention_all_text(chat_id)
+
+    if not etiketler:
+        await update.message.reply_text("Henüz kayıtlı kimse yok, biraz konuşma olsun önce 😄")
+        return
+
+    await update.message.reply_text(f"📢 {etiketler}", parse_mode="HTML")
+
+# =====================
 # MESAJ İŞLEYİCİLERİ
 # =====================
 
@@ -188,13 +206,14 @@ async def keyword_listener(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     bot_username = context.bot.username
     mention_edildi = bot_username and f"@{bot_username.lower()}" in metin
+    meyus_cagrildi = "meyus" in metin
     reply_bota_mi = (
         update.message.reply_to_message
         and update.message.reply_to_message.from_user
         and update.message.reply_to_message.from_user.id == context.bot.id
     )
 
-    if mention_edildi or reply_bota_mi:
+    if mention_edildi or reply_bota_mi or meyus_cagrildi:
         add_xp(update.effective_user)
         cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
         await update.message.reply_text(cevap)
@@ -252,6 +271,7 @@ def main():
     job_queue = application.job_queue
 
     # Handler'ları ekle
+    application.add_handler(CommandHandler("herkes", herkes_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, keyword_listener))
 
     # Zamanlanmış görevleri ayarla
