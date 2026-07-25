@@ -586,4 +586,4 @@ async def iyigeceler_job(context: ContextTypes.DEFAULT_TYPE):
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-app.add_handle
+app.add_handler
