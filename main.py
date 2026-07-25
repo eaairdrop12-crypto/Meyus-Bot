@@ -1,6 +1,7 @@
 import html
 import os
 import random
+import re
 import asyncio
 import sqlite3
 from collections import defaultdict, deque
@@ -59,6 +60,68 @@ KEYWORDS = {
 }
 
 # =====================
+# SAAT ESPRİLERİ
+# =====================
+
+TIME_PATTERN = re.compile(r'(?<!\d)([01]?\d|2[0-3])[:.]([0-5]\d)(?!\d)')
+SAAT_KELIME_PATTERN = re.compile(r'\bsaat\s+([01]?\d|2[0-3])\b')
+
+SAAT_CEVAPLARI = [
+    "Saat {saat} mi? Kahve molası tam zamanı ☕😄",
+    "{saat}'te herkes hâlâ hayatta, helal olsun 💪😂",
+    "Vay be, {saat}! Zaman su gibi akıp gidiyor ⏳✨",
+    "{saat} demek, tam bir şeyler atıştırma vakti 🍫😋",
+    "Saat {saat}... yatalım mı, uyanık mı kalalım? Karar sizin 😴🤔",
+    "{saat} gibi bir saat, tam da espri saati! 😆",
+    "Aa {saat} olmuş, ben hâlâ burada dedikodu peşindeyim 🕵️‍♂️😂",
+    "{saat}, mükemmel bir sohbet saati! Devam edelim 🥳",
+    "{saat}'ü gösteriyor demek ki, bir çay molası şart ☕🍪",
+]
+
+def saat_tespit_et(metin):
+    eslesme = TIME_PATTERN.search(metin)
+    if eslesme:
+        return f"{eslesme.group(1)}:{eslesme.group(2)}"
+    eslesme2 = SAAT_KELIME_PATTERN.search(tr_lower(metin))
+    if eslesme2:
+        return f"{eslesme2.group(1)}:00"
+    return None
+
+async def saat_cevabi_gonder(update, saat):
+    sablon = random.choice(SAAT_CEVAPLARI)
+    await update.message.reply_text(sablon.format(saat=saat))
+
+# =====================
+# /slap İÇİN VERİLER
+# =====================
+
+TOKAT_HAREKETLERI = [
+    "kocaman bir balıkla tokatladı 🐟",
+    "uçan bir sandalyeyle selamladı 🪑",
+    "sopayla nazikçe uyardı 🏒",
+    "sanal ama acıtan bir tokat attı 🖐️",
+    "sıcak bir pizza dilimiyle tokatladı 🍕",
+    "klavyeyle tokatladı ⌨️",
+    "bir tokat serveti gibi savurdu 👋",
+    "ayakkabısıyla fırlattı 👟",
+]
+
+# =====================
+# /siir İÇİN VERİLER
+# =====================
+
+SIIR_KONULARI = [
+    "hayat", "kahve", "pazartesi", "arkadaşlık", "yaz",
+    "tembellik", "aşk", "para", "uyku", "grup sohbeti",
+]
+
+SIIR_PERSONA = (
+    "Sen MeyusBot'sun, Türkçe, esprili ve sıcak şiirler yazan bir yapay "
+    "zekasın. Verilen konu hakkında 4-8 dizelik, komik ama akıcı bir şiir "
+    "yaz. Sadece şiiri yaz, başka açıklama ekleme."
+)
+
+# =====================
 # AI CEVAP ÜRETME
 # =====================
 
@@ -82,6 +145,24 @@ async def ai_cevap_uret(chat_id, kullanici_adi, mesaj):
     except Exception as e:
         print(f"AI Hatası: {e}")
         return "Şu an düşüncelerim biraz karışık, birazdan tekrar dene 😅"
+
+async def siir_uret(konu):
+    def cagri():
+        return ai_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            max_tokens=250,
+            messages=[
+                {"role": "system", "content": SIIR_PERSONA},
+                {"role": "user", "content": f"Konu: {konu}"},
+            ],
+        )
+
+    try:
+        response = await asyncio.to_thread(cagri)
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"AI Hatası (şiir): {e}")
+        return "Şiir perim şu an bulutların arasında kayboldu, birazdan tekrar dene 😅"
 
 # =====================
 # VERİTABANI
@@ -116,6 +197,13 @@ CREATE TABLE IF NOT EXISTS activity(
  last_message TEXT,
  last_seen TEXT,
  PRIMARY KEY (chat_id, user_id)
+)
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS bot_settings(
+ chat_id INTEGER PRIMARY KEY,
+ enabled INTEGER DEFAULT 1
 )
 """)
 
@@ -156,10 +244,10 @@ def mention_all_text(chat_id):
 def log_activity(chat_id, user, mesaj_metni):
     simdi = datetime.now(TR_TZ).strftime("%d.%m.%Y %H:%M")
     kisa_mesaj = mesaj_metni[:60]
-    
+
     cursor.execute("SELECT message_count FROM activity WHERE chat_id=? AND user_id=?", (chat_id, user.id))
     row = cursor.fetchone()
-    
+
     if row is None:
         cursor.execute("INSERT INTO activity(chat_id, user_id, first_name, message_count, last_message, last_seen) VALUES(?,?,?,?,?,?)",
                        (chat_id, user.id, user.first_name, 1, kisa_mesaj, simdi))
@@ -167,6 +255,27 @@ def log_activity(chat_id, user, mesaj_metni):
         cursor.execute("UPDATE activity SET message_count=message_count+1, first_name=?, last_message=?, last_seen=? WHERE chat_id=? AND user_id=?",
                        (user.first_name, kisa_mesaj, simdi, chat_id, user.id))
     db.commit()
+
+def is_bot_enabled(chat_id):
+    cursor.execute("SELECT enabled FROM bot_settings WHERE chat_id=?", (chat_id,))
+    row = cursor.fetchone()
+    if row is None:
+        return True
+    return bool(row[0])
+
+def set_bot_enabled(chat_id, enabled):
+    cursor.execute("INSERT OR REPLACE INTO bot_settings(chat_id, enabled) VALUES(?,?)", (chat_id, int(enabled)))
+    db.commit()
+
+async def is_admin(update, context):
+    if update.effective_chat.type not in ("group", "supergroup"):
+        return False
+    try:
+        member = await context.bot.get_chat_member(update.effective_chat.id, update.effective_user.id)
+        return member.status in ("administrator", "creator")
+    except Exception as e:
+        print(f"Admin kontrol hatası: {e}")
+        return False
 
 # =====================
 # KOMUTLAR
@@ -186,6 +295,55 @@ async def herkes_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"📢 {etiketler}", parse_mode="HTML")
 
+async def botkapat_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.type not in ("group", "supergroup"):
+        await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
+        return
+    if not await is_admin(update, context):
+        await update.message.reply_text("Bu komutu sadece grup yöneticileri kullanabilir 🙅")
+        return
+    set_bot_enabled(update.effective_chat.id, False)
+    await update.message.reply_text("Tamam, sustum 🤐 Tekrar konuşmamı istersen /botac yazman yeterli.")
+
+async def botac_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.type not in ("group", "supergroup"):
+        await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
+        return
+    if not await is_admin(update, context):
+        await update.message.reply_text("Bu komutu sadece grup yöneticileri kullanabilir 🙅")
+        return
+    set_bot_enabled(update.effective_chat.id, True)
+    await update.message.reply_text("Ben döndüm! Kaldığım yerden devam 🥳")
+
+async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.type not in ("group", "supergroup"):
+        await update.message.reply_text("Bu komut sadece gruplarda çalışır 😄")
+        return
+
+    gonderen = update.effective_user
+    hareket = random.choice(TOKAT_HAREKETLERI)
+
+    if update.message.reply_to_message and update.message.reply_to_message.from_user:
+        hedef = update.message.reply_to_message.from_user
+        if hedef.id == gonderen.id:
+            await update.message.reply_text(f"{gonderen.first_name} kendi kendini {hareket} 😂")
+        else:
+            await update.message.reply_text(f"{gonderen.first_name}, {hedef.first_name}'i {hareket}")
+        return
+
+    uyeler = [u for u in get_group_members(update.effective_chat.id) if u[0] != gonderen.id]
+    if not uyeler:
+        await update.message.reply_text("Tokatlayacak kimse yok, biraz daha kalabalık olalım 😅")
+        return
+
+    hedef_id, hedef_ad = random.choice(uyeler)
+    await update.message.reply_text(f"{gonderen.first_name}, {hedef_ad}'i {hareket}")
+
+async def siir_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    konu = " ".join(context.args) if context.args else random.choice(SIIR_KONULARI)
+    siir = await siir_uret(konu)
+    await update.message.reply_text(f"📜 {konu.capitalize()} üzerine bir şiir:\n\n{siir}")
+
 # =====================
 # MESAJ İŞLEYİCİLERİ
 # =====================
@@ -197,6 +355,9 @@ async def keyword_listener(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type in ("group", "supergroup"):
         remember_group_member(update.effective_chat.id, update.effective_user)
         log_activity(update.effective_chat.id, update.effective_user, update.message.text)
+
+        if not is_bot_enabled(update.effective_chat.id):
+            return
 
     metin_ham = update.message.text
     metin = tr_lower(metin_ham)
@@ -224,6 +385,13 @@ async def keyword_listener(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(cevap)
             return
 
+    if update.effective_chat.type in ("group", "supergroup"):
+        saat = saat_tespit_et(metin_ham)
+        if saat:
+            add_xp(update.effective_user)
+            await saat_cevabi_gonder(update, saat)
+            return
+
     if update.effective_chat.type in ("group", "supergroup") and random.random() < 0.05:
         add_xp(update.effective_user)
         cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
@@ -237,6 +405,8 @@ async def keyword_listener(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def gunaydin_job(context: ContextTypes.DEFAULT_TYPE):
     for chat_id in get_all_group_chat_ids():
+        if not is_bot_enabled(chat_id):
+            continue
         etiketler = mention_all_text(chat_id)
         if not etiketler:
             continue
@@ -250,6 +420,8 @@ async def gunaydin_job(context: ContextTypes.DEFAULT_TYPE):
 
 async def iyigeceler_job(context: ContextTypes.DEFAULT_TYPE):
     for chat_id in get_all_group_chat_ids():
+        if not is_bot_enabled(chat_id):
+            continue
         etiketler = mention_all_text(chat_id)
         if not etiketler:
             continue
@@ -271,6 +443,10 @@ def main():
 
     # Handler'ları ekle
     application.add_handler(CommandHandler("herkes", herkes_command))
+    application.add_handler(CommandHandler("botkapat", botkapat_command))
+    application.add_handler(CommandHandler("botac", botac_command))
+    application.add_handler(CommandHandler("slap", slap_command))
+    application.add_handler(CommandHandler("siir", siir_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, keyword_listener))
 
     # Zamanlanmış görevleri ayarla
