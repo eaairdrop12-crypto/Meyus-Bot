@@ -161,6 +161,62 @@ SIIR_PERSONA = (
 )
 
 # =====================
+# KARŞILAMA / AYRILMA MESAJLARI
+# =====================
+
+KARSILAMA_PERSONA = (
+    "Sen MeyusBot'sun, bir Telegram grubuna yeni katılan kişiyi sıcak, "
+    "içten ve esprili bir üslupla karşılayan bir yapay zekasın. Kişinin "
+    "adı sana verilecek. En az 5-6 cümlelik, samimi, gruba ait hissettiren, "
+    "biraz da eğlenceli bir karşılama yazısı yaz. Grubun neşeli bir yer "
+    "olduğunu hissettir, kişiyi sohbete katılmaya teşvik et. Türkçe yaz, "
+    "birkaç emoji kullanabilirsin ama abartma. Küfür, hakaret veya "
+    "aşağılayıcı ifade KULLANMA. Sadece karşılama metnini yaz, başka "
+    "açıklama ekleme."
+)
+
+KARSILAMA_YEDEK = (
+    "Gruba hoş geldin {isim}! 🎉 Burada bazen çok konuşuruz, bazen de "
+    "sessizce birbirimizin mesajlarını okuruz ama hep birbirimize karşı "
+    "sıcağızdır. Kendini hemen evinde gibi hissedebilirsin, çekinmeden "
+    "sohbete katıl, espri yap, soru sor, ne istersen. Aramızda olduğun "
+    "için gerçekten mutluyuz, umarız burada güzel vakit geçirirsin 😊"
+)
+
+AYRILMA_CEVAPLARI = [
+    "{isim} gruptan ayrıldı... ya da resmi kayıtlara göre 'sonsuza kadar banlandı' diyelim 😂🔨",
+    "Haberler var: {isim} artık aramızda değil. Sebep olarak 'çok fazla espri kaldıramadı' yazıyor tutanakta 📋😆",
+    "{isim} gitti! Grup güvenlik kurulu (yani ben) bu ayrılışı 'gönüllü ban' olarak kayıtlara geçirdi 🕵️‍♂️🚪",
+    "Bir kuş gitti, bir üye eksildi 🐦 {isim}, seni BAN'ladık desek yeridir ama aslında kendin gittin 😂",
+    "{isim} çıktı gruptan. Resmi açıklama: 'çok fazla bildirim aldı ve pes etti' 📱💥",
+    "Alarm! {isim} gruptan ayrıldı. Sebebini soranlara 'bizim espriler ağır geldi' diyoruz 😅",
+    "{isim} sessizce kayboldu... tıpkı bir ninja gibi 🥷 Ama merak etme, kapımız her zaman açık.",
+    "Grubun yeni kuralı: {isim} artık burada değil, biz de bunu 'gizemli bir ban' olarak duyuruyoruz 🚨😂",
+]
+
+async def karsilama_uret(isim):
+    def cagri():
+        return ai_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            max_tokens=300,
+            temperature=0.8,
+            messages=[
+                {"role": "system", "content": KARSILAMA_PERSONA},
+                {"role": "user", "content": f"Yeni katılan kişinin adı: {isim}"},
+            ],
+        )
+
+    try:
+        response = await asyncio.to_thread(cagri)
+        metin = response.choices[0].message.content
+        if kufur_var_mi(metin):
+            return KARSILAMA_YEDEK.format(isim=isim)
+        return metin
+    except Exception as e:
+        print(f"AI Hatası (karşılama): {e}")
+        return KARSILAMA_YEDEK.format(isim=isim)
+
+# =====================
 # /motivasyon İÇİN VERİLER
 # =====================
 
@@ -184,14 +240,31 @@ MOTIVASYON_YEDEK = (
     "Bir adım daha at, gerisi kendiliğinden gelecek 💪✨"
 )
 
+MOTIVASYON_ACILARI = [
+    "zorluklarla mücadele etmiş ama pes etmemiş biri gibi konuş",
+    "sabah enerjisi veren, güne başlarken söylenecek bir konuşma gibi konuş",
+    "yorgun ve tükenmiş hisseden birine sarılır gibi sakin bir üslupla konuş",
+    "hedeflerine odaklanmış, hırslı ama sıcak bir koç gibi konuş",
+    "küçük adımların büyük değişimler yarattığını vurgulayarak konuş",
+    "geçmişteki başarısızlıkların aslında birer ders olduğunu anlatarak konuş",
+    "bir arkadaşın samimi ve içten sözleri gibi konuş",
+    "gece geç saatte kendine güveni azalmış birine seslenir gibi konuş",
+    "bugünün yarını şekillendirdiğini hatırlatan bir üslupla konuş",
+    "spor yapmaya, sağlıklı yaşamaya motive eden bir tonla konuş",
+]
+
 async def motivasyon_uret(konu=None):
-    kullanici_mesaji = f"Konu: {konu}" if konu else "Genel bir motivasyon konuşması yaz."
+    aci = random.choice(MOTIVASYON_ACILARI)
+    if konu:
+        kullanici_mesaji = f"Konu: {konu}. Ayrıca şu üslupla yaz: {aci}."
+    else:
+        kullanici_mesaji = f"Genel bir motivasyon konuşması yaz. Şu üslupla yaz: {aci}."
 
     def cagri():
         return ai_client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             max_tokens=350,
-            temperature=0.7,
+            temperature=0.95,
             messages=[
                 {"role": "system", "content": MOTIVASYON_PERSONA},
                 {"role": "user", "content": kullanici_mesaji},
@@ -412,20 +485,6 @@ async def is_admin(update, context):
 # KOMUTLAR
 # =====================
 
-async def herkes_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.type not in ("group", "supergroup"):
-        await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
-        return
-
-    chat_id = update.effective_chat.id
-    etiketler = mention_all_text(chat_id)
-
-    if not etiketler:
-        await update.message.reply_text("Henüz kayıtlı kimse yok, biraz konuşma olsun önce 😄")
-        return
-
-    await update.message.reply_text(f"📢 {etiketler}", parse_mode="HTML")
-
 async def botkapat_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type not in ("group", "supergroup"):
         await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
@@ -475,55 +534,6 @@ async def siir_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     siir = await siir_uret(konu)
     await update.message.reply_text(f"📜 {konu.capitalize()} üzerine bir şiir:\n\n{siir}")
 
-async def aktivite_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.type not in ("group", "supergroup"):
-        await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
-        return
-
-    chat_id = update.effective_chat.id
-    user = update.effective_user
-    cursor.execute(
-        "SELECT message_count, last_message, last_seen FROM activity WHERE chat_id=? AND user_id=?",
-        (chat_id, user.id),
-    )
-    row = cursor.fetchone()
-
-    if row is None:
-        await update.message.reply_text("Henüz senden bir kayıt yok, biraz konuş bakalım 😄")
-        return
-
-    mesaj_sayisi, son_mesaj, son_gorulme = row
-    await update.message.reply_text(
-        f"📊 {user.first_name} için aktivite:\n"
-        f"• Toplam mesaj: {mesaj_sayisi}\n"
-        f"• Son görülme: {son_gorulme}\n"
-        f"• Son mesaj: {html.escape(son_mesaj)}"
-    )
-
-async def siralama_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.type not in ("group", "supergroup"):
-        await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
-        return
-
-    chat_id = update.effective_chat.id
-    cursor.execute(
-        "SELECT first_name, message_count FROM activity WHERE chat_id=? ORDER BY message_count DESC LIMIT 10",
-        (chat_id,),
-    )
-    satirlar = cursor.fetchall()
-
-    if not satirlar:
-        await update.message.reply_text("Henüz sıralama için yeterli veri yok 😄")
-        return
-
-    madalyalar = ["🥇", "🥈", "🥉"]
-    metin = "🏆 Grubun en aktifleri:\n\n"
-    for i, (ad, sayi) in enumerate(satirlar):
-        rozet = madalyalar[i] if i < 3 else f"{i + 1}."
-        metin += f"{rozet} {ad} — {sayi} mesaj\n"
-
-    await update.message.reply_text(metin)
-
 async def fal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kullanici_adi = update.effective_user.first_name
     fal = random.choice(FAL_METINLERI)
@@ -538,6 +548,29 @@ async def motivasyon_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     kullanici_adi = update.effective_user.first_name
     metin = await motivasyon_uret(konu)
     await update.message.reply_text(f"🌟 {kullanici_adi}, işte sana biraz motivasyon:\n\n{metin}")
+
+async def yeni_uye_geldi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.new_chat_members:
+        return
+
+    chat_id = update.effective_chat.id
+    for uye in update.message.new_chat_members:
+        if uye.id == context.bot.id:
+            continue  # botun kendisi eklendiyse karşılama yapma
+        remember_group_member(chat_id, uye)
+        metin = await karsilama_uret(uye.first_name)
+        await update.message.reply_text(f"🎉 {metin}")
+
+async def uye_ayrildi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.left_chat_member:
+        return
+
+    ayrilan = update.message.left_chat_member
+    if ayrilan.id == context.bot.id:
+        return  # bot kendisi çıkarıldıysa mesaj atma
+
+    sablon = random.choice(AYRILMA_CEVAPLARI)
+    await update.message.reply_text(sablon.format(isim=ayrilan.first_name))
 
 # =====================
 # MESAJ İŞLEYİCİLERİ
@@ -636,16 +669,15 @@ def main():
     job_queue = application.job_queue
 
     # Handler'ları ekle
-    application.add_handler(CommandHandler("herkes", herkes_command))
     application.add_handler(CommandHandler("botkapat", botkapat_command))
     application.add_handler(CommandHandler("botac", botac_command))
     application.add_handler(CommandHandler("slap", slap_command))
     application.add_handler(CommandHandler("siir", siir_command))
-    application.add_handler(CommandHandler("aktivite", aktivite_command))
-    application.add_handler(CommandHandler("siralama", siralama_command))
     application.add_handler(CommandHandler("fal", fal_command))
     application.add_handler(CommandHandler("soru", soru_command))
     application.add_handler(CommandHandler("motivasyon", motivasyon_command))
+    application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, yeni_uye_geldi))
+    application.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, uye_ayrildi))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, keyword_listener))
 
     # Zamanlanmış görevleri ayarla
