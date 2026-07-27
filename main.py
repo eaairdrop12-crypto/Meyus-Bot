@@ -15,6 +15,7 @@ from telegram.ext import (
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
+    ChatMemberHandler,
     ContextTypes,
     filters,
     JobQueue,
@@ -22,10 +23,12 @@ from telegram.ext import (
 
 TR_TZ = ZoneInfo("Europe/Istanbul")
 
+
 def tr_lower(metin):
     """Türkçe İ/I harflerini doğru şekilde küçük harfe çevirir."""
     metin = metin.replace("İ", "i").replace("I", "ı")
     return metin.lower()
+
 
 # =====================
 # BOT AYARLARI
@@ -56,17 +59,17 @@ BOT_PERSONA = (
 # =====================
 # KÜFÜR FİLTRESİ
 # =====================
-# Modelin persona talimatına rağmen kaçırabileceği kelimeler için son
-# savunma hattı. Listeyi ihtiyacına göre genişletebilirsin.
 KUFUR_LISTESI = [
     "amk", "amına", "aq", "orospu", "piç", "yavşak", "siktir", "sik",
     "göt", "salak", "gerizekalı", "aptal", "mal mısın", "ibne", "puşt",
     "kahpe", "şerefsiz", "yarrak", "bok", "hassiktir",
 ]
 
+
 def kufur_var_mi(metin):
     metin_k = tr_lower(metin)
     return any(k in metin_k for k in KUFUR_LISTESI)
+
 
 NAZIK_RET_CEVAPLARI = [
     "Hmm, ona öyle cevap veremem 😅 başka bir şey soralım mı?",
@@ -77,7 +80,6 @@ NAZIK_RET_CEVAPLARI = [
 # =====================
 # KEYWORDS (Anahtar Kelimeler)
 # =====================
-# Buraya botun cevap vereceği kelimeleri ve karşılıklarını ekle
 KEYWORDS = {
     "merhaba": "Selam! Nasılsın?",
     "nasılsın": "İyiyim, sen nasılsın? 😊",
@@ -116,6 +118,7 @@ SAAT_CEVAPLARI = [
     "{saat}'te hâlâ buradaysak demek ki sohbet gerçekten iyiymiş 😄👏",
 ]
 
+
 def saat_tespit_et(metin):
     eslesme = TIME_PATTERN.search(metin)
     if eslesme:
@@ -125,9 +128,11 @@ def saat_tespit_et(metin):
         return f"{eslesme2.group(1)}:00"
     return None
 
+
 async def saat_cevabi_gonder(update, saat):
     sablon = random.choice(SAAT_CEVAPLARI)
     await update.message.reply_text(sablon.format(saat=saat))
+
 
 # =====================
 # /slap İÇİN VERİLER
@@ -194,6 +199,7 @@ AYRILMA_CEVAPLARI = [
     "Grubun yeni kuralı: {isim} artık burada değil, biz de bunu 'gizemli bir ban' olarak duyuruyoruz 🚨😂",
 ]
 
+
 async def karsilama_uret(isim):
     def cagri():
         return ai_client.chat.completions.create(
@@ -215,6 +221,7 @@ async def karsilama_uret(isim):
     except Exception as e:
         print(f"AI Hatası (karşılama): {e}")
         return KARSILAMA_YEDEK.format(isim=isim)
+
 
 # =====================
 # /motivasyon İÇİN VERİLER
@@ -253,6 +260,7 @@ MOTIVASYON_ACILARI = [
     "spor yapmaya, sağlıklı yaşamaya motive eden bir tonla konuş",
 ]
 
+
 async def motivasyon_uret(konu=None):
     aci = random.choice(MOTIVASYON_ACILARI)
     if konu:
@@ -280,6 +288,7 @@ async def motivasyon_uret(konu=None):
     except Exception as e:
         print(f"AI Hatası (motivasyon): {e}")
         return MOTIVASYON_YEDEK
+
 
 # =====================
 # /fal İÇİN VERİLER
@@ -319,6 +328,7 @@ SORU_LISTESI = [
 # AI CEVAP ÜRETME
 # =====================
 
+
 async def ai_cevap_uret(chat_id, kullanici_adi, mesaj):
     gecmis = sohbet_gecmisi[chat_id]
     gecmis.append({"role": "user", "content": f"{kullanici_adi}: {mesaj}"})
@@ -336,7 +346,6 @@ async def ai_cevap_uret(chat_id, kullanici_adi, mesaj):
         response = await asyncio.to_thread(cagri)
         cevap = response.choices[0].message.content
 
-        # Küfür filtresi: model yine de kaçırırsa burada yakalanır
         if kufur_var_mi(cevap):
             cevap = random.choice(NAZIK_RET_CEVAPLARI)
 
@@ -345,6 +354,7 @@ async def ai_cevap_uret(chat_id, kullanici_adi, mesaj):
     except Exception as e:
         print(f"AI Hatası: {e}")
         return "Şu an düşüncelerim biraz karışık, birazdan tekrar dene 😅"
+
 
 async def siir_uret(konu):
     def cagri():
@@ -367,6 +377,7 @@ async def siir_uret(konu):
     except Exception as e:
         print(f"AI Hatası (şiir): {e}")
         return "Şiir perim şu an bulutların arasında kayboldu, birazdan tekrar dene 😅"
+
 
 # =====================
 # VERİTABANI
@@ -413,6 +424,7 @@ CREATE TABLE IF NOT EXISTS bot_settings(
 
 db.commit()
 
+
 def add_xp(user):
     cursor.execute("SELECT xp FROM users WHERE user_id=?", (user.id,))
     row = cursor.fetchone()
@@ -422,21 +434,29 @@ def add_xp(user):
         cursor.execute("UPDATE users SET xp=xp+2 WHERE user_id=?", (user.id,))
     db.commit()
 
+
 def get_user(user_id):
     cursor.execute("SELECT first_name, xp FROM users WHERE user_id=?", (user_id,))
     return cursor.fetchone()
 
+
 def remember_group_member(chat_id, user):
-    cursor.execute("INSERT OR REPLACE INTO group_members(chat_id, user_id, first_name) VALUES(?,?,?)", (chat_id, user.id, user.first_name))
+    cursor.execute(
+        "INSERT OR REPLACE INTO group_members(chat_id, user_id, first_name) VALUES(?,?,?)",
+        (chat_id, user.id, user.first_name),
+    )
     db.commit()
+
 
 def get_group_members(chat_id):
     cursor.execute("SELECT user_id, first_name FROM group_members WHERE chat_id=?", (chat_id,))
     return cursor.fetchall()
 
+
 def get_all_group_chat_ids():
     cursor.execute("SELECT DISTINCT chat_id FROM group_members")
-    return [row for row in cursor.fetchall()]
+    return [row[0] for row in cursor.fetchall()]
+
 
 def mention_all_text(chat_id):
     members = get_group_members(chat_id)
@@ -444,6 +464,7 @@ def mention_all_text(chat_id):
         return None
     etiketler = [f'<a href="tg://user?id={uid}">{ad}</a>' for uid, ad in members]
     return " ".join(etiketler)
+
 
 def log_activity(chat_id, user, mesaj_metni):
     simdi = datetime.now(TR_TZ).strftime("%d.%m.%Y %H:%M")
@@ -453,12 +474,17 @@ def log_activity(chat_id, user, mesaj_metni):
     row = cursor.fetchone()
 
     if row is None:
-        cursor.execute("INSERT INTO activity(chat_id, user_id, first_name, message_count, last_message, last_seen) VALUES(?,?,?,?,?,?)",
-                       (chat_id, user.id, user.first_name, 1, kisa_mesaj, simdi))
+        cursor.execute(
+            "INSERT INTO activity(chat_id, user_id, first_name, message_count, last_message, last_seen) VALUES(?,?,?,?,?,?)",
+            (chat_id, user.id, user.first_name, 1, kisa_mesaj, simdi),
+        )
     else:
-        cursor.execute("UPDATE activity SET message_count=message_count+1, first_name=?, last_message=?, last_seen=? WHERE chat_id=? AND user_id=?",
-                       (user.first_name, kisa_mesaj, simdi, chat_id, user.id))
+        cursor.execute(
+            "UPDATE activity SET message_count=message_count+1, first_name=?, last_message=?, last_seen=? WHERE chat_id=? AND user_id=?",
+            (user.first_name, kisa_mesaj, simdi, chat_id, user.id),
+        )
     db.commit()
+
 
 def is_bot_enabled(chat_id):
     cursor.execute("SELECT enabled FROM bot_settings WHERE chat_id=?", (chat_id,))
@@ -467,225 +493,216 @@ def is_bot_enabled(chat_id):
         return True
     return bool(row[0])
 
+
 def set_bot_enabled(chat_id, enabled):
-    cursor.execute("INSERT OR REPLACE INTO bot_settings(chat_id, enabled) VALUES(?,?)", (chat_id, int(enabled)))
+    cursor.execute(
+        "INSERT OR REPLACE INTO bot_settings(chat_id, enabled) VALUES(?,?)",
+        (chat_id, int(enabled)),
+    )
     db.commit()
 
-async def is_admin(update, context):
-    if update.effective_chat.type not in ("group", "supergroup"):
-        return False
-    try:
-        member = await context.bot.get_chat_member(update.effective_chat.id, update.effective_user.id)
-        return member.status in ("administrator", "creator")
-    except Exception as e:
-        print(f"Admin kontrol hatası: {e}")
-        return False
 
 # =====================
-# KOMUTLAR
+# GÜNAYDIN / İYİ GECELER (OTOMATİK + FOTOĞRAFLI)
 # =====================
 
-async def botkapat_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.type not in ("group", "supergroup"):
-        await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
-        return
-    if not await is_admin(update, context):
-        await update.message.reply_text("Bu komutu sadece grup yöneticileri kullanabilir 🙅")
-        return
-    set_bot_enabled(update.effective_chat.id, False)
-    await update.message.reply_text("Tamam, sustum 🤐 Tekrar konuşmamı istersen /botac yazman yeterli.")
+GUNAYDIN_KLASORU = "gorseller/gunaydin"
+IYI_GECELER_KLASORU = "gorseller/iyigeceler"
 
-async def botac_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.type not in ("group", "supergroup"):
-        await update.message.reply_text("Bu komut sadece gruplarda çalışır.")
-        return
-    if not await is_admin(update, context):
-        await update.message.reply_text("Bu komutu sadece grup yöneticileri kullanabilir 🙅")
-        return
-    set_bot_enabled(update.effective_chat.id, True)
-    await update.message.reply_text("Ben döndüm! Kaldığım yerden devam 🥳")
+GUNAYDIN_MESAJLARI = [
+    "Günaydın! Hayırlı sabahlar herkese ☀️",
+    "Günaydın! Yeni bir gün, yeni bir bereket, hayırlı sabahlar 🌞",
+    "Herkese günaydın ve hayırlı sabahlar dilerim 😊",
+    "Günaydın! Kahveler hazır olsun, hayırlı sabahlar ☕🌅",
+    "Hayırlı sabahlar! Bugün de güzel şeyler olsun 🌻",
+]
 
-async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.type not in ("group", "supergroup"):
-        await update.message.reply_text("Bu komut sadece gruplarda çalışır 😄")
-        return
+IYI_GECELER_MESAJLARI = [
+    "İyi geceler, iyi uykular herkese 🌙",
+    "Gün burada bitiyor, iyi geceler ve tatlı rüyalar 😴✨",
+    "İyi geceler! Yarın yine buradayız, iyi uykular 💤",
+    "Herkese iyi geceler ve iyi uykular dilerim 🌌",
+    "İyi geceler! Bugün ne olduysa oldu, şimdi dinlenme vakti 😌🌙",
+]
 
-    gonderen = update.effective_user
-    hareket = random.choice(TOKAT_HAREKETLERI)
 
-    if update.message.reply_to_message and update.message.reply_to_message.from_user:
-        hedef = update.message.reply_to_message.from_user
-        if hedef.id == gonderen.id:
-            await update.message.reply_text(f"{gonderen.first_name} kendi kendini {hareket} 😂")
-        else:
-            await update.message.reply_text(f"{gonderen.first_name}, {hedef.first_name}'i {hareket}")
-        return
+def rastgele_fotograf(klasor):
+    if not os.path.isdir(klasor):
+        return None
+    dosyalar = [f for f in os.listdir(klasor) if f.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))]
+    if not dosyalar:
+        return None
+    return os.path.join(klasor, random.choice(dosyalar))
 
-    uyeler = [u for u in get_group_members(update.effective_chat.id) if u[0] != gonderen.id]
-    if not uyeler:
-        await update.message.reply_text("Tokatlayacak kimse yok, biraz daha kalabalık olalım 😅")
-        return
 
-    hedef_id, hedef_ad = random.choice(uyeler)
-    await update.message.reply_text(f"{gonderen.first_name}, {hedef_ad}'i {hareket}")
+async def gunaydin_gonder(context: ContextTypes.DEFAULT_TYPE):
+    mesaj = random.choice(GUNAYDIN_MESAJLARI)
+    foto_yolu = rastgele_fotograf(GUNAYDIN_KLASORU)
+    for chat_id in get_all_group_chat_ids():
+        if not is_bot_enabled(chat_id):
+            continue
+        try:
+            if foto_yolu:
+                with open(foto_yolu, "rb") as f:
+                    await context.bot.send_photo(chat_id=chat_id, photo=f, caption=mesaj)
+            else:
+                await context.bot.send_message(chat_id=chat_id, text=mesaj)
+        except Exception as e:
+            print(f"Günaydın gönderme hatası ({chat_id}): {e}")
 
-async def siir_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def iyi_geceler_gonder(context: ContextTypes.DEFAULT_TYPE):
+    mesaj = random.choice(IYI_GECELER_MESAJLARI)
+    foto_yolu = rastgele_fotograf(IYI_GECELER_KLASORU)
+    for chat_id in get_all_group_chat_ids():
+        if not is_bot_enabled(chat_id):
+            continue
+        try:
+            if foto_yolu:
+                with open(foto_yolu, "rb") as f:
+                    await context.bot.send_photo(chat_id=chat_id, photo=f, caption=mesaj)
+            else:
+                await context.bot.send_message(chat_id=chat_id, text=mesaj)
+        except Exception as e:
+            print(f"İyi geceler gönderme hatası ({chat_id}): {e}")
+
+
+# =====================
+# KOMUT İŞLEYİCİLERİ
+# =====================
+
+
+async def start_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Selam! Ben MeyusBot 🤖 Grupta sohbet ederim, şiir yazarım, fal bakarım "
+        "ve her sabah 09:00'da günaydın, her gece 22:00'de iyi geceler mesajı atarım. "
+        "/siir, /fal, /soru, /motivasyon, /slap komutlarını deneyebilirsin."
+    )
+
+
+async def siir_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     konu = " ".join(context.args) if context.args else random.choice(SIIR_KONULARI)
+    await update.message.chat.send_action("typing")
     siir = await siir_uret(konu)
-    await update.message.reply_text(f"📜 {konu.capitalize()} üzerine bir şiir:\n\n{siir}")
+    await update.message.reply_text(siir)
 
-async def fal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    kullanici_adi = update.effective_user.first_name
-    fal = random.choice(FAL_METINLERI)
-    await update.message.reply_text(f"☕ {kullanici_adi}, fincanına bakıyorum...\n\n{fal}")
 
-async def soru_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    soru = random.choice(SORU_LISTESI)
-    await update.message.reply_text(f"💭 Sohbet sorusu: {soru}")
+async def fal_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(random.choice(FAL_METINLERI))
 
-async def motivasyon_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def soru_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(random.choice(SORU_LISTESI))
+
+
+async def motivasyon_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     konu = " ".join(context.args) if context.args else None
-    kullanici_adi = update.effective_user.first_name
+    await update.message.chat.send_action("typing")
     metin = await motivasyon_uret(konu)
-    await update.message.reply_text(f"🌟 {kullanici_adi}, işte sana biraz motivasyon:\n\n{metin}")
+    await update.message.reply_text(metin)
 
-async def yeni_uye_geldi(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.new_chat_members:
+
+async def slap_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    gonderen = update.message.from_user.first_name
+    if update.message.reply_to_message:
+        hedef = update.message.reply_to_message.from_user.first_name
+    elif context.args:
+        hedef = " ".join(context.args)
+    else:
+        await update.message.reply_text("Kimi tokatlayacağımı belirtmelisin (mesaja reply at ya da isim yaz) 😄")
         return
+    hareket = random.choice(TOKAT_HAREKETLERI)
+    await update.message.reply_text(f"{gonderen}, {hedef}'i {hareket}")
 
-    chat_id = update.effective_chat.id
-    for uye in update.message.new_chat_members:
-        if uye.id == context.bot.id:
-            continue  # botun kendisi eklendiyse karşılama yapma
-        remember_group_member(chat_id, uye)
-        metin = await karsilama_uret(uye.first_name)
-        await update.message.reply_text(f"🎉 {metin}")
 
-async def uye_ayrildi(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.left_chat_member:
-        return
-
-    ayrilan = update.message.left_chat_member
-    if ayrilan.id == context.bot.id:
-        return  # bot kendisi çıkarıldıysa mesaj atma
-
-    sablon = random.choice(AYRILMA_CEVAPLARI)
-    await update.message.reply_text(sablon.format(isim=ayrilan.first_name))
-
-# =====================
-# MESAJ İŞLEYİCİLERİ
-# =====================
-
-async def keyword_listener(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def mesaj_isleyici(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text:
         return
 
-    if update.effective_chat.type in ("group", "supergroup"):
-        remember_group_member(update.effective_chat.id, update.effective_user)
-        log_activity(update.effective_chat.id, update.effective_user, update.message.text)
+    chat_id = update.message.chat_id
+    user = update.message.from_user
+    mesaj = update.message.text
 
-        if not is_bot_enabled(update.effective_chat.id):
+    remember_group_member(chat_id, user)
+    log_activity(chat_id, user, mesaj)
+    add_xp(user)
+
+    if not is_bot_enabled(chat_id):
+        return
+
+    saat = saat_tespit_et(mesaj)
+    if saat:
+        await saat_cevabi_gonder(update, saat)
+        return
+
+    metin_kucuk = tr_lower(mesaj)
+    for anahtar, cevap in KEYWORDS.items():
+        if anahtar in metin_kucuk:
+            await update.message.reply_text(cevap)
             return
 
-    metin_ham = update.message.text
-    metin = tr_lower(metin_ham)
-    chat_id = update.effective_chat.id
-    kullanici_adi = update.effective_user.first_name
-
-    bot_username = context.bot.username
-    mention_edildi = bot_username and f"@{bot_username.lower()}" in metin
-    meyus_cagrildi = "meyus" in metin
-    reply_bota_mi = (
+    is_mentioned = context.bot.username and f"@{context.bot.username.lower()}" in metin_kucuk
+    is_reply_to_bot = (
         update.message.reply_to_message
         and update.message.reply_to_message.from_user
         and update.message.reply_to_message.from_user.id == context.bot.id
     )
 
-    if mention_edildi or reply_bota_mi or meyus_cagrildi:
-        add_xp(update.effective_user)
-        cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
-        await update.message.reply_text(cevap)
-        return
-
-    for kelime, cevap in KEYWORDS.items():
-        if kelime in metin:
-            add_xp(update.effective_user)
-            await update.message.reply_text(cevap)
-            return
-
-    saat = saat_tespit_et(metin_ham)
-    if saat:
-        add_xp(update.effective_user)
-        await saat_cevabi_gonder(update, saat)
-        return
-
-    if update.effective_chat.type in ("group", "supergroup") and random.random() < 0.05:
-        add_xp(update.effective_user)
-        cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
-        await update.message.reply_text(cevap)
-        return
-
-    if update.effective_chat.type == "private":
-        add_xp(update.effective_user)
-        cevap = await ai_cevap_uret(chat_id, kullanici_adi, metin_ham)
+    if is_mentioned or is_reply_to_bot:
+        await update.message.chat.send_action("typing")
+        cevap = await ai_cevap_uret(chat_id, user.first_name, mesaj)
         await update.message.reply_text(cevap)
 
-async def gunaydin_job(context: ContextTypes.DEFAULT_TYPE):
-    for chat_id in get_all_group_chat_ids():
-        if not is_bot_enabled(chat_id):
-            continue
-        etiketler = mention_all_text(chat_id)
-        if not etiketler:
-            continue
-        foto_url = f"https://picsum.photos/800/600?random={random.randint(1, 100000)}"
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=foto_url,
-            caption=f"☀️ Günaydın! Herkese bereketli bir gün diliyorum 🌞\n\n{etiketler}",
-            parse_mode="HTML"
-        )
 
-async def iyigeceler_job(context: ContextTypes.DEFAULT_TYPE):
-    for chat_id in get_all_group_chat_ids():
-        if not is_bot_enabled(chat_id):
+async def yeni_uye_geldi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.new_chat_members:
+        return
+    chat_id = update.message.chat_id
+    for yeni_uye in update.message.new_chat_members:
+        if yeni_uye.id == context.bot.id:
             continue
-        etiketler = mention_all_text(chat_id)
-        if not etiketler:
-            continue
-        foto_url = f"https://picsum.photos/800/600?random={random.randint(1, 100000)}"
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=foto_url,
-            caption=f"🌙 İyi geceler herkese, tatlı rüyalar 💤\n\n{etiketler}",
-            parse_mode="HTML"
-        )
+        remember_group_member(chat_id, yeni_uye)
+        karsilama = await karsilama_uret(yeni_uye.first_name)
+        await update.message.reply_text(karsilama)
+
+
+async def uye_ayrildi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.message.left_chat_member:
+        return
+    isim = update.message.left_chat_member.first_name
+    await update.message.reply_text(random.choice(AYRILMA_CEVAPLARI).format(isim=isim))
+
 
 # =====================
-# BAŞLATMA FONKSİYONU
+# MAIN
 # =====================
+
 
 def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
-    job_queue = application.job_queue
 
-    # Handler'ları ekle
-    application.add_handler(CommandHandler("botkapat", botkapat_command))
-    application.add_handler(CommandHandler("botac", botac_command))
-    application.add_handler(CommandHandler("slap", slap_command))
-    application.add_handler(CommandHandler("siir", siir_command))
-    application.add_handler(CommandHandler("fal", fal_command))
-    application.add_handler(CommandHandler("soru", soru_command))
-    application.add_handler(CommandHandler("motivasyon", motivasyon_command))
+    application.add_handler(CommandHandler("start", start_komutu))
+    application.add_handler(CommandHandler("siir", siir_komutu))
+    application.add_handler(CommandHandler("fal", fal_komutu))
+    application.add_handler(CommandHandler("soru", soru_komutu))
+    application.add_handler(CommandHandler("motivasyon", motivasyon_komutu))
+    application.add_handler(CommandHandler("slap", slap_komutu))
+
     application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, yeni_uye_geldi))
     application.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, uye_ayrildi))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, keyword_listener))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mesaj_isleyici))
 
-    # Zamanlanmış görevleri ayarla
-    job_queue.run_daily(gunaydin_job, time(hour=7, tzinfo=TR_TZ))
-    job_queue.run_daily(iyigeceler_job, time(hour=23, tzinfo=TR_TZ))
+    # --- Sabah 09:00 günaydın, gece 22:00 iyi geceler (fotoğraflı) ---
+    application.job_queue.run_daily(
+        gunaydin_gonder, time(hour=9, minute=0, tzinfo=TR_TZ), name="gunaydin_job"
+    )
+    application.job_queue.run_daily(
+        iyi_geceler_gonder, time(hour=22, minute=0, tzinfo=TR_TZ), name="iyigeceler_job"
+    )
 
-    print("Bot başlatılıyor...")
+    print("MeyusBot çalışıyor...")
     application.run_polling()
+
 
 if __name__ == "__main__":
     main()
