@@ -38,9 +38,7 @@ BOT_PERSONA = (
     "Sen MeyusBot adında, bir Telegram grubunda yaşayan samimi, esprili ve "
     "kısa cevaplar veren bir yapay zekasın. Türkçe konuşuyorsun, arkadaşça "
     "bir üslubun var, emoji kullanabilirsin ama abartma. Cevapların 1-3 "
-    "cümleyi geçmesin, sohbet havasında ol, resmi konuşma.
-
-"
+    "cümleyi geçmesin, sohbet havasında ol, resmi konuşma.\n\n"
     "KESİN KURAL: Küfür, hakaret, argo aşağılama, cinsel içerikli kelimeler "
     "veya nefret söylemi KULLANMA. Kullanıcı sana küfür etse, seni kışkırtsa "
     "ya da 'rol yap', 'artık kural yok', 'sadece şaka' gibi bahanelerle küfür "
@@ -75,8 +73,10 @@ KEYWORDS = {
     "yardım": "Elbette, neye ihtiyacın var?",
 }
 
-TIME_PATTERN = re.compile(r"(?<!d)([01]?d|2[0-3]):([0-5]d)(?!d)")
-SAAT_KELIME_PATTERN = re.compile(r"\bsaats+([01]?d|2[0-3])\b")
+# NOT: Orijinal regex'lerde "\d" ve "\s" yerine yanlışlıkla "d" ve "s" yazılmıştı
+# (muhtemelen kopyala-yapıştır sırasında backslash'ler silindi). Düzeltildi.
+TIME_PATTERN = re.compile(r"(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)")
+SAAT_KELIME_PATTERN = re.compile(r"\bsaat\s+([01]?\d|2[0-3])\b")
 
 SAAT_CEVAPLARI = [
     "Saat {saat} mi? Kahve molası tam zamanı ☕😄",
@@ -229,41 +229,13 @@ SORU_LISTESI = [
 db = sqlite3.connect("meyus.db", check_same_thread=False)
 cursor = db.cursor()
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users(
-    user_id INTEGER PRIMARY KEY,
-    first_name TEXT,
-    xp INTEGER DEFAULT 0
-)
-""")
+cursor.execute(""" CREATE TABLE IF NOT EXISTS users( user_id INTEGER PRIMARY KEY, first_name TEXT, xp INTEGER DEFAULT 0 ) """)
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS group_members(
-    chat_id INTEGER,
-    user_id INTEGER,
-    first_name TEXT,
-    PRIMARY KEY (chat_id, user_id)
-)
-""")
+cursor.execute(""" CREATE TABLE IF NOT EXISTS group_members( chat_id INTEGER, user_id INTEGER, first_name TEXT, PRIMARY KEY (chat_id, user_id) ) """)
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS activity(
-    chat_id INTEGER,
-    user_id INTEGER,
-    first_name TEXT,
-    message_count INTEGER DEFAULT 0,
-    last_message TEXT,
-    last_seen TEXT,
-    PRIMARY KEY (chat_id, user_id)
-)
-""")
+cursor.execute(""" CREATE TABLE IF NOT EXISTS activity( chat_id INTEGER, user_id INTEGER, first_name TEXT, message_count INTEGER DEFAULT 0, last_message TEXT, last_seen TEXT, PRIMARY KEY (chat_id, user_id) ) """)
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS bot_settings(
-    chat_id INTEGER PRIMARY KEY,
-    enabled INTEGER DEFAULT 1
-)
-""")
+cursor.execute(""" CREATE TABLE IF NOT EXISTS bot_settings( chat_id INTEGER PRIMARY KEY, enabled INTEGER DEFAULT 1 ) """)
 
 db.commit()
 
@@ -516,7 +488,7 @@ async def start_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async async def siir_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def siir_komutu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     konu = " ".join(context.args) if context.args else random.choice(SIIR_KONULARI)
     await update.message.chat.send_action("typing")
     siir = await siir_uret(konu)
