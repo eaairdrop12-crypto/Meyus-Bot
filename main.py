@@ -549,7 +549,10 @@ async def mesaj_isleyici(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(cevap)
             return
 
-    is_mentioned = context.bot.username and f"@{context.bot.username.lower()}" in metin_kucuk
+    is_mentioned = (
+    (context.bot.username and f"@{context.bot.username.lower()}" in metin_kucuk)
+    or "meyus" in metin_kucuk
+)
     is_reply_to_bot = (
         update.message.reply_to_message
         and update.message.reply_to_message.from_user
