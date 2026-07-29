@@ -32,6 +32,7 @@ def tr_lower(metin: str) -> str:
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 if not BOT_TOKEN or not GROQ_API_KEY:
     raise ValueError("BOT_TOKEN veya GROQ_API_KEY ortam değişkenleri eksik!")
