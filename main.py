@@ -3,6 +3,7 @@ import random
 import re
 import asyncio
 import sqlite3
+import google.generativeai as genai
 from collections import defaultdict, deque
 from datetime import time, datetime
 from zoneinfo import ZoneInfo
