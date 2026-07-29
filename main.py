@@ -42,7 +42,6 @@ gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 GROQ_MODEL = "llama-3.3-70b-versatile" 
 
 
-
 # =========================================================
 # PERSONA'LAR
 # =========================================================
