@@ -37,8 +37,18 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if not BOT_TOKEN or not GROQ_API_KEY:
     raise ValueError("BOT_TOKEN veya GROQ_API_KEY ortam değişkenleri eksik!")
 
-ai_client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-GROQ_MODEL = "openai/gpt-oss-120b"  # llama-3.3-70b-versatile deprecated edildi, güncel model kullanılıyor
+ai_client = OpenAI(
+    api_key=GROQ_API_KEY,
+    base_url="https://api.groq.com/openai/v1"
+)
+
+genai.configure(api_key=GEMINI_API_KEY)
+
+gemini_model = genai.GenerativeModel(
+    "gemini-2.5-flash"
+)
+
+GROQ_MODEL = "openai/gpt-oss-120b"
 sohbet_gecmisi = defaultdict(lambda: deque(maxlen=10))
 
 # =========================================================
