@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from openai import OpenAI
 from telegram import Update, MessageEntity
-from telegram.ext: (
+from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     MessageHandler,
@@ -20,9 +20,7 @@ from telegram.ext: (
 
 TR_TZ = ZoneInfo("Europe/Istanbul")
 
-def tr_lower(metin: str) -> str:
-    metin = metin.replace("İ", "i").replace("I", "ı")
-    return metin.lower()
+# ... (tr_lower fonksiyonu vb.)
 
 # =========================================================
 # TEMEL AYARLAR
@@ -32,9 +30,6 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
-if not BOT_TOKEN or not GROQ_API_KEY:
-    raise ValueError("BOT_TOKEN veya GROQ_API_KEY ortam değişkenleri eksik!")
-
 ai_client = OpenAI(
     api_key=GROQ_API_KEY,
     base_url="https://api.groq.com/openai/v1"
@@ -42,14 +37,11 @@ ai_client = OpenAI(
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Düzeltme: Geçerli bir Gemini modeli kullanıldı
-gemini_model = genai.GenerativeModel(
-    "gemini-1.5-flash" # veya "gemini-1.5-pro"
-)
+# Düzeltilmiş model isimleri
+gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+GROQ_MODEL = "llama-3.3-70b-versatile" 
 
-# Düzeltme: Geçerli bir Groq modeli kullanıldı
-GROQ_MODEL = "llama-3.3-70b-versatile" # veya "mixtral-8x7b-32768" gibi Groq'un desteklediği bir model
-sohbet_gecmisi = defaultdict(lambda: deque(maxlen=10))
+
 
 # =========================================================
 # PERSONA'LAR
