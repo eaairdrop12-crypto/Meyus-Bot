@@ -484,4 +484,129 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         add_xp(user)
 
     # 1) Saat tespiti -> farklı farklı motivasyon/espri cevapları
-    saat = saat_tespit_et(mesaj
+    saat = saat_tespit_et(mesaj)
+    if saat:
+        await saat_cevabi_gonder(update, saat)
+        return
+
+    # 2) "Meyus" kelimesi geçiyor mu, bot mention edildi mi ya da bot'a reply mi atıldı
+    reply_bota_mi = (
+        update.message.reply_to_message
+        and update.message.reply_to_message.from_user
+        and update.message.reply_to_message.from_user.id == context.bot.id
+    )
+    meyus_gecti_mi = "meyus" in tr_lower(mesaj)
+    mention_var_mi = bot_mention_edildi_mi(update, context)
+
+    if meyus_gecti_mi or mention_var_mi or reply_bota_mi:
+        await update.message.chat.send_action("typing")
+        cevap = await ai_cevap_uret(chat.id, user.first_name, mesaj)
+        await update.message.reply_text(cevap)
+
+
+# =========================================================
+# KOMUTLAR
+# =========================================================
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Selam! Ben MeyusBot 🤖\n\n"
+        "• Adımı ('Meyus') yazarsan ya da beni etiketlersen cevap veririm\n"
+        "• Saatten bahsedersen espri/motivasyon atarım ⏰\n"
+        "• /slap - birini tokatlarım 🖐️\n"
+        "• /siir <konu> - kısa şiir yazarım ✍️\n"
+        "• /fal - umut verici bir fal bakarım ☕"
+    )
+
+
+async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    gonderen = update.effective_user
+
+    hedef_isim = None
+
+    if update.message.reply_to_message and update.message.reply_to_message.from_user:
+        hedef_isim = update.message.reply_to_message.from_user.first_name
+    elif context.args:
+        hedef_isim = " ".join(context.args).lstrip("@")
+    else:
+        uyeler = [u for u in get_group_members(chat.id) if u[0] != gonderen.id]
+        if uyeler:
+            hedef_isim = random.choice(uyeler)[1]
+
+    if not hedef_isim:
+        await update.message.reply_text(
+            "Kimi tokatlayacağımı bilemedim 😅 birine reply atarak ya da "
+            "/slap isim şeklinde yazarak dene."
+        )
+        return
+
+    hareket = random.choice(TOKAT_HAREKETLERI)
+    await update.message.reply_text(f"{gonderen.first_name}, {hedef_isim}'i {hareket}")
+
+
+async def siir_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    konu = " ".join(context.args) if context.args else random.choice(SIIR_KONULARI)
+    await update.message.chat.send_action("typing")
+    siir = await siir_uret(konu)
+    await update.message.reply_text(siir)
+
+
+async def fal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    fal = random.choice(FAL_METINLERI)
+    await update.message.reply_text(fal)
+
+
+# =========================================================
+# ZAMANLANMIŞ GÖREVLER: GÜNAYDIN / İYİ GECELER
+# =========================================================
+
+async def gunaydin_gonder(context: ContextTypes.DEFAULT_TYPE):
+    mesaj = random.choice(GUNAYDIN_MESAJLARI)
+    for chat_id in get_all_group_chat_ids():
+        try:
+            await context.bot.send_message(chat_id=chat_id, text=mesaj)
+        except Exception as e:
+            print(f"[GUNAYDIN HATASI] chat_id={chat_id}: {e}")
+
+
+async def iyi_geceler_gonder(context: ContextTypes.DEFAULT_TYPE):
+    mesaj = random.choice(IYI_GECELER_MESAJLARI)
+    for chat_id in get_all_group_chat_ids():
+        try:
+            await context.bot.send_message(chat_id=chat_id, text=mesaj)
+        except Exception as e:
+            print(f"[IYI_GECELER HATASI] chat_id={chat_id}: {e}")
+
+
+# =========================================================
+# UYGULAMA BAŞLATMA
+# =========================================================
+
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    # Komutlar
+    app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(CommandHandler("slap", slap_command))
+    app.add_handler(CommandHandler("siir", siir_command))
+    app.add_handler(CommandHandler("fal", fal_command))
+
+    # Grup üyelik olayları
+    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, yeni_uye_handler))
+    app.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, ayrilan_uye_handler))
+
+    # Normal metin mesajları (komut olmayanlar)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, mesaj_handler))
+
+    # Zamanlanmış görevler (job_queue için pip install "python-telegram-bot[job-queue]" gerekir)
+    if app.job_queue:
+        app.job_queue.run_daily(gunaydin_gonder, time=time(hour=8, minute=0, tzinfo=TR_TZ))
+        app.job_queue.run_daily(iyi_geceler_gonder, time=time(hour=23, minute=0, tzinfo=TR_TZ))
+
+    print("MeyusBot çalışıyor...")
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
