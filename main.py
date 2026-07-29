@@ -486,10 +486,33 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         log_activity(chat.id, user, mesaj)
         add_xp(user)
 
-    # 1) Saat tespiti -> farklı farklı motivasyon/espri cevapları
+    # 1) Saat tespiti
     saat = saat_tespit_et(mesaj)
     if saat:
         await saat_cevabi_gonder(update, saat)
+        return
+
+    # 2) Botun cevap verme şartlarını kontrol edelim
+    
+    # Bota mı yanıt verilmiş?
+    reply_bota_mi = False
+    if update.message.reply_to_message:
+        # Yanıtlanan mesajın sahibi botun kendisi mi?
+        if update.message.reply_to_message.from_user.id == context.bot.id:
+            reply_bota_mi = True
+
+    # Mesajda "meyus" geçiyor mu?
+    meyus_gecti_mi = "meyus" in tr_lower(mesaj)
+    
+    # Bot etiketlenmiş mi?
+    mention_var_mi = bot_mention_edildi_mi(update, context)
+
+    # Eğer bu şartlardan biri sağlanıyorsa AI cevap üretsin
+    if meyus_gecti_mi or mention_var_mi or reply_bota_mi:
+        await update.message.chat.send_action("typing")
+        cevap = await ai_cevap_uret(chat.id, user.first_name, mesaj)
+        await update.message.reply_text(cevap)
+
         return
 
     # 2) "Meyus" kelimesi geçiyor mu, bot mention edildi mi ya da bot'a reply mi atıldı
