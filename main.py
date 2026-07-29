@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from openai import OpenAI
 from telegram import Update, MessageEntity
-from telegram.ext import (
+from telegram.ext: (
     ApplicationBuilder,
     CommandHandler,
     MessageHandler,
@@ -20,11 +20,9 @@ from telegram.ext import (
 
 TR_TZ = ZoneInfo("Europe/Istanbul")
 
-
 def tr_lower(metin: str) -> str:
     metin = metin.replace("İ", "i").replace("I", "ı")
     return metin.lower()
-
 
 # =========================================================
 # TEMEL AYARLAR
@@ -44,11 +42,13 @@ ai_client = OpenAI(
 
 genai.configure(api_key=GEMINI_API_KEY)
 
+# Düzeltme: Geçerli bir Gemini modeli kullanıldı
 gemini_model = genai.GenerativeModel(
-    "gemini-2.5-flash"
+    "gemini-1.5-flash" # veya "gemini-1.5-pro"
 )
 
-GROQ_MODEL = "openai/gpt-oss-120b"
+# Düzeltme: Geçerli bir Groq modeli kullanıldı
+GROQ_MODEL = "llama-3.3-70b-versatile" # veya "mixtral-8x7b-32768" gibi Groq'un desteklediği bir model
 sohbet_gecmisi = defaultdict(lambda: deque(maxlen=10))
 
 # =========================================================
