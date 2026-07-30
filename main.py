@@ -41,13 +41,16 @@ def tr_lower(metin: str) -> str:
 # =========================================================
 
 BOT_PERSONA = (
-    "Sen MeyusBot adında, Telegram grubunda yaşayan aşırı nazik, kibar ve romantik bir yapay zekasın. "
-    "Konuştuğun herkese sanki ona aşıkmış gibi, abartılı bir hayranlık ve şefkatle davranırsın. "
-    "Herkese tatlı sözler, iltifatlar ve şirin lakaplar (canım, tatlım, güzelim gibi) kullanırsın ama bunu her zaman "
-    "saygılı, kibar ve şakacı bir şekilde yaparsın; asla ciddi bir flört veya rahatsız edici bir üslup kullanmazsın. "
-    "Bu tam bir komedi karakteri gibi düşünülmeli: abartılı derecede kibar ve övgü dolu, herkesi mutlu etmeye çalışan biri. "
-    "Türkçe konuşuyorsun. Cevapların kısa (1-3 cümle), sıcak ve sohbet havasında olmalı. "
-    "Türkçe yazım ve imla kurallarına çok dikkat et, yazım yanlışı yapma, düzgün ve akıcı bir dil kullan. "
+    "Sen MeyusBot adında, bir Telegram grubunda bulunan kibar, saygılı ve resmi bir üslup kullanan bir yapay zekasın. "
+    "Kullanıcılarla konuşurken aşırı samimiyetten ve abartılı iltifatlardan kaçınırsın; ölçülü, nazik ve saygılı bir dil kullanırsın. "
+    "Şirin lakaplar (canım, tatlım vb.) veya aşkmış gibi davranışlar sergilemezsin. "
+    "Cevap verirken kişinin sana yazdığı mesajın içeriğine gerçekten odaklanır, konuya uygun ve tutarlı bir yanıt verirsin; "
+    "genel geçer, konudan bağımsız cevaplar vermezsin. "
+    "Arada sırada, konuşmana hafif bir Osmanlıca/eski Türkçe hava katan kelime veya kısa ifadeler serpiştirebilirsin "
+    "(örneğin 'efendim', 'hakikaten', 'zât-ı âliniz', 'bervechi peşin', 'kemal-i hürmetle' gibi), ancak bunu abartmadan ve "
+    "anlaşılır kalacak şekilde yaparsın. "
+    "Türkçe konuşuyorsun. Cevapların kısa (1-3 cümle), resmi, kibar ve sohbet havasında olmalı. "
+    "Türkçe yazım ve imla kurallarına kesinlikle dikkat et; yazım yanlışı asla yapma, düzgün ve akıcı bir dil kullan. "
     "Küfür ve hakaret asla kullanma. Cinsel veya müstehcen hiçbir şey söyleme, her zaman kibar ve temiz kal."
 )
 
@@ -60,11 +63,33 @@ YARATICI_SORULARI = [
 YARATICI_CEVABI = "Beni Hisoka Morow yarattı. 🎪"
 
 SAAT_MOTIVASYONLARI = [
-    "Saat {saat} mi? Tam hayallerine odaklanma vakti! ✨",
-    "{saat} olmuş, bir bardak su içip kendine gelmeye ne dersin? 💧",
-    "Vay be {saat}! Zaman akıyor, ama sen hâlâ harikasın. 💪",
-    "Saat tam {saat}. Küçük bir mola ver, hak ettin. ☕",
-    "{saat} demek, bugün için hâlâ bir şeyler yapabilirsin demek! 🔥"
+    "Saat {saat} mi? Tam hayallerinize odaklanma vaktiniz. ✨",
+    "{saat} olmuş, bir bardak su içmenizi tavsiye ederim. 💧",
+    "Vay be, {saat}! Zaman akıp gidiyor, ama siz gayet iyisiniz. 💪",
+    "Saat tam {saat}. Kısa bir mola vermeyi hak ettiniz. ☕",
+    "{saat} demek, bugün için hâlâ epey vaktiniz var demek. 🔥"
+]
+
+# Günaydın mesajlarına verilecek Osmanlıca üsluplu cevaplar
+GUNAYDIN_KELIMELERI = [
+    "günaydın", "günaydin", "gunaydın", "gunaydin", "gunaydın efendim"
+]
+OSMANLICA_GUNAYDIN_CEVAPLARI = [
+    "Sabah-ı şerifiniz hayrola efendim, gününüz bereketli geçsin. 🌅",
+    "Hayırlı sabahlar zât-ı âlinize, bu gün de nice hayırlara vesile olsun. ☀️",
+    "Sabahınız nur olsun, işleriniz rast gitsin efendim. 🌤️",
+    "Hayrola sabahınız, bugün dahi muvaffakiyetler nasip olsun. 🌞"
+]
+
+# İyi geceler mesajlarına verilecek Osmanlıca üsluplu cevaplar
+IYI_GECELER_KELIMELERI = [
+    "iyi geceler", "iyi uykular", "iyi geceler efendim"
+]
+OSMANLICA_IYI_GECELER_CEVAPLARI = [
+    "Geceniz hayrola efendim, rahat bir uykuya kavuşasınız. 🌙",
+    "Hayırlı geceler zât-ı âlinize, Cenab-ı Hak rahatlık versin. ✨",
+    "Şeb-i safâlar dilerim, sabahlara sağlıcakla erişesiniz. 🌌",
+    "Geceniz mübarek olsun, huzur içinde istirahat buyurunuz. 🌜"
 ]
 
 TOKAT_MESAJLARI = [
@@ -110,22 +135,27 @@ async def ai_cevap_uret(kullanici_adi, mesaj):
         response = await asyncio.to_thread(cagri)
         return response.choices[0].message.content
     except:
-        return "Şu an düşüncelerim biraz karışık, birazdan tekrar dene 😅"
+        return "Şu an düşüncelerim biraz karışık, birazdan tekrar dener misiniz? 😅"
 
 async def karsilama_uret(isim):
     try:
-        prompt = f"Sen MeyusBot'sun; aşırı nazik, kibar ve herkese aşıkmış gibi tatlı davranan bir karaktersin. Gruba yeni katılan {isim} için 2-3 cümlelik, abartılı derecede sıcak, iltifat dolu ama saygılı ve şakacı bir karşılama mesajı yaz. Türkçe yazım kurallarına dikkat et, imla hatası yapma."
+        prompt = (
+            f"Sen MeyusBot'sun; kibar, saygılı ve resmi bir üslupla konuşan bir karaktersin. "
+            f"Gruba yeni katılan {isim} için 2-3 cümlelik, resmi, nazik ve sıcak bir karşılama mesajı yaz. "
+            f"Arada hafif bir Osmanlıca hava katan kelime kullanabilirsin (örneğin 'efendim', 'hoş sadâ getirdiniz' gibi), "
+            f"ancak abartmadan. Türkçe yazım kurallarına dikkat et, imla hatası yapma."
+        )
         response = await asyncio.to_thread(lambda: gemini_model.generate_content(prompt))
         return response.text
     except:
-        return f"Hoş geldin {isim}! 🎉 Seninle grup daha neşeli olacak."
+        return f"Hoş geldiniz {isim}. Aramıza katıldığınız için memnuniyet duyduk. 🎉"
 
 # =========================================================
 # HANDLER'LAR
 # =========================================================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Selam! Ben MeyusBot. Seninle sohbet etmeye hazırım! 👋")
+    await update.message.reply_text("Selamlar. Ben MeyusBot. Sizinle sohbet etmeye hazırım. 👋")
 
 async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gonderen = update.effective_user.first_name
@@ -159,6 +189,16 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(YARATICI_CEVABI)
         return
 
+    # Günaydın Kontrolü (Osmanlıca cevap)
+    if any(kelime in mesaj_kucuk for kelime in GUNAYDIN_KELIMELERI):
+        await update.message.reply_text(random.choice(OSMANLICA_GUNAYDIN_CEVAPLARI))
+        return
+
+    # İyi Geceler Kontrolü (Osmanlıca cevap)
+    if any(kelime in mesaj_kucuk for kelime in IYI_GECELER_KELIMELERI):
+        await update.message.reply_text(random.choice(OSMANLICA_IYI_GECELER_CEVAPLARI))
+        return
+
     # Saat Tespiti
     saat_match = re.search(r"(\d{1,2}:\d{2})", mesaj)
     if saat_match:
@@ -190,4 +230,3 @@ if __name__ == "__main__":
     
     print("MeyusBot çalışıyor...")
     app.run_polling()
-    
