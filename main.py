@@ -63,11 +63,31 @@ YARATICI_SORULARI = [
 YARATICI_CEVABI = "Beni Hisoka Morow yarattı. 🎪"
 
 SAAT_MOTIVASYONLARI = [
-    "Saat {saat} mi? Tam hayallerinize odaklanma vaktiniz. ✨",
-    "{saat} olmuş, bir bardak su içmenizi tavsiye ederim. 💧",
-    "Vay be, {saat}! Zaman akıp gidiyor, ama siz gayet iyisiniz. 💪",
-    "Saat tam {saat}. Kısa bir mola vermeyi hak ettiniz. ☕",
-    "{saat} demek, bugün için hâlâ epey vaktiniz var demek. 🔥"
+    "Saat {saat} olmuş. Zaman su gibi akıyor, değerlendirmeyi unutmayın. ⏳",
+    "{saat}... Bugün için güzel şeyler yapmak adına hâlâ geç değil. 🌿",
+    "Saat tam {saat}. Kısa bir mola verip nefes almak iyi gelebilir. ☕",
+    "{saat} olmuş efendim, umarım gününüz güzel geçiyordur. 🌸",
+    "Vakit {saat}. Bir bardak su içmeyi ihmal etmeyin. 💧",
+    "Saat {saat}. Küçük adımlar büyük sonuçlar doğurur. ✨",
+    "{saat}... Planlarınızı gözden geçirmek için güzel bir vakit. 📋",
+    "Saat {saat}. Kendinize de biraz vakit ayırmayı unutmayın. 🌙",
+    "{saat} olmuş. Umarım işleriniz yolunda gidiyordur. 😊",
+    "Vakit {saat}. Bugün yeni bir şey öğrenmeye ne dersiniz? 📚",
+    "Saat {saat}. Belki kısa bir yürüyüş iyi gelebilir. 🚶",
+    "{saat}... Kahveniz hazırsa sohbet de hazırdır. ☕",
+    "Saat tam {saat}. Hedeflerinize bir adım daha yaklaşabilirsiniz. 🎯",
+    "{saat} olmuş efendim. Moraliniz daima yüksek olsun. 🌞",
+    "Vakit {saat}. Bugünün kıymetini bilin. 🌼",
+    "Saat {saat}. Yorulduysanız biraz dinlenmekten çekinmeyin. 🍀",
+    "{saat}... Her yeni dakika yeni bir fırsattır. 🚀",
+    "Saat tam {saat}. Umarım yüzünüzden tebessüm eksik olmaz. 😊",
+    "{saat} olmuş. Çalışıyorsanız kolaylıklar dilerim. 💼",
+    "Vakit {saat}. Sevdiklerinize bir mesaj atmanın tam zamanı olabilir. ❤️",
+    "Saat {saat}. Küçük bir müzik molası nasıl olur? 🎵",
+    "{saat}... Gününüz bereketli ve huzurlu geçsin efendim. 🤲",
+    "Saat tam {saat}. Sağlığınızı ihmal etmeyin. 🍎",
+    "Vakit {saat}. Bugün de elinizden gelenin en iyisini yapmanız yeterli. 🌟",
+    "{saat} olmuş. Hayırlı ve verimli vakitler dilerim. 🌺"
 ]
 
 # Günaydın mesajlarına verilecek Osmanlıca üsluplu cevaplar
@@ -200,7 +220,7 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Saat Tespiti
-    saat_match = re.search(r"(\d{1,2}:\d{2})", mesaj)
+    saat_match = re.search(r"\b([01]?\d|2[0-3])[:.]([0-5]\d)\b", mesaj)
     if saat_match:
         await update.message.reply_text(random.choice(SAAT_MOTIVASYONLARI).format(saat=saat_match.group(1)))
         return
