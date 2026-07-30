@@ -43,22 +43,42 @@ def tr_lower(metin: str) -> str:
 BOT_PERSONA = (
     "Sen MeyusBot adında, Telegram grubunda yaşayan samimi ve esprili bir yapay zekasın. "
     "Türkçe konuşuyorsun. Cevapların kısa (1-3 cümle), arkadaşça ve sohbet havasında olmalı. "
+    "Türkçe yazım ve imla kurallarına çok dikkat et, yazım yanlışı yapma, düzgün ve akıcı bir dil kullan. "
     "Küfür ve hakaret asla kullanma."
 )
+
+# Birisi botun yaratıcısını sorduğunda kullanılacak sabit cevap
+YARATICI_SORULARI = [
+    "seni kim yarattı", "seni kim yaptı", "yaratıcın kim", "sahibin kim",
+    "seni kim yazdı", "sizi kim yarattı", "kim yarattı seni", "yaratıcın kimdir",
+    "seni yaratan kim", "seni kodlayan kim", "geliştiricin kim"
+]
+YARATICI_CEVABI = "Beni Hisoka Morow yarattı. 🎪"
 
 SAAT_MOTIVASYONLARI = [
     "Saat {saat} mi? Tam hayallerine odaklanma vakti! ✨",
     "{saat} olmuş, bir bardak su içip kendine gelmeye ne dersin? 💧",
-    "Vay be {saat}! Zaman akıyor, ama sen hala harikasın. 💪",
+    "Vay be {saat}! Zaman akıyor, ama sen hâlâ harikasın. 💪",
     "Saat tam {saat}. Küçük bir mola ver, hak ettin. ☕",
-    "{saat} demek, bugün için hala bir şeyler yapabilirsin demek! 🔥"
+    "{saat} demek, bugün için hâlâ bir şeyler yapabilirsin demek! 🔥"
 ]
 
 TOKAT_MESAJLARI = [
     "{gonderen}, {hedef}'i kocaman bir balıkla tokatladı! 🐟",
     "{gonderen}, {hedef}'e sanal ama acıtan bir terlik fırlattı! 🩴",
     "{gonderen}, {hedef}'i bir pizza dilimiyle susturdu! 🍕",
-    "{gonderen}, {hedef}'e klavyeyle nazikçe vurdu! ⌨️"
+    "{gonderen}, {hedef}'e klavyeyle nazikçe vurdu! ⌨️",
+    "{gonderen}, {hedef}'i tavayla tanıştırdı! 🍳",
+    "{gonderen}, {hedef}'e sopayla selam gönderdi! 🏏",
+    "{gonderen}, {hedef}'i bir yastıkla boğuşturdu! 🛏️",
+    "{gonderen}, {hedef}'e ekmek fırlattı, tam suratına! 🍞",
+    "{gonderen}, {hedef}'i sandalyeyle kovaladı! 🪑",
+    "{gonderen}, {hedef}'e bir tokat attı, ses grup dışından bile duyuldu! 👋",
+    "{gonderen}, {hedef}'i sopanın ucundaki sosisle gıdıkladı! 🌭",
+    "{gonderen}, {hedef}'e uzaktan kumandayla nişan aldı! 📺",
+    "{gonderen}, {hedef}'i devasa bir yastıkla havaya uçurdu! 🪶",
+    "{gonderen}, {hedef}'e bir tabak makarna fırlattı! 🍝",
+    "{gonderen}, {hedef}'i süpürgeyle kapı dışına süpürdü! 🧹"
 ]
 
 AYRILMA_SAKALARI = [
@@ -88,17 +108,9 @@ async def ai_cevap_uret(kullanici_adi, mesaj):
     except:
         return "Şu an düşüncelerim biraz karışık, birazdan tekrar dene 😅"
 
-async def siir_uret(konu):
-    try:
-        prompt = f"Sen MeyusBot'sun. {konu} hakkında 4 dizelik, esprili ve kısa bir Türkçe şiir yaz. Sadece şiiri ver."
-        response = await asyncio.to_thread(lambda: gemini_model.generate_content(prompt))
-        return response.text
-    except:
-        return "Şiir perilerim şu an uykuda, sonra tekrar dene ✍️💤"
-
 async def karsilama_uret(isim):
     try:
-        prompt = f"Gruba yeni katılan {isim} için 2-3 cümlelik, çok samimi ve esprili bir karşılama mesajı yaz."
+        prompt = f"Sen MeyusBot'sun. Gruba yeni katılan {isim} için 2-3 cümlelik, çok samimi ve esprili bir karşılama mesajı yaz. Türkçe yazım kurallarına dikkat et, imla hatası yapma."
         response = await asyncio.to_thread(lambda: gemini_model.generate_content(prompt))
         return response.text
     except:
@@ -110,21 +122,6 @@ async def karsilama_uret(isim):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Selam! Ben MeyusBot. Seninle sohbet etmeye hazırım! 👋")
-
-async def fal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.chat.send_action("typing")
-    prompt = "Kullanıcıya kahve falı bakıyormuşsun gibi, içinde emoji olan, olumlu, umut dolu ve UZUN bir fal metni yaz. Türkçe olsun."
-    try:
-        response = await asyncio.to_thread(lambda: gemini_model.generate_content(prompt))
-        await update.message.reply_text(response.text)
-    except:
-        await update.message.reply_text("Fincanın kapalı kalmış, birazdan tekrar dene ☕🔮")
-
-async def siir_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    konu = " ".join(context.args) if context.args else "hayat"
-    await update.message.chat.send_action("typing")
-    siir = await siir_uret(konu)
-    await update.message.reply_text(siir)
 
 async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gonderen = update.effective_user.first_name
@@ -151,6 +148,12 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text: return
     mesaj = update.message.text
     user_name = update.effective_user.first_name
+    mesaj_kucuk = tr_lower(mesaj)
+
+    # Yaratıcı Sorusu Kontrolü
+    if any(soru in mesaj_kucuk for soru in YARATICI_SORULARI):
+        await update.message.reply_text(YARATICI_CEVABI)
+        return
 
     # Saat Tespiti
     saat_match = re.search(r"(\d{1,2}:\d{2})", mesaj)
@@ -162,7 +165,7 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_reply = update.message.reply_to_message and update.message.reply_to_message.from_user.id == context.bot.id
     is_mention = any(ent.type == MessageEntity.MENTION and mesaj[ent.offset:ent.offset+ent.length].lower() == f"@{context.bot.username.lower()}" for ent in update.message.entities or [])
     
-    if "meyus" in tr_lower(mesaj) or is_reply or is_mention:
+    if "meyus" in mesaj_kucuk or is_reply or is_mention:
         await update.message.chat.send_action("typing")
         cevap = await ai_cevap_uret(user_name, mesaj)
         await update.message.reply_text(cevap)
@@ -175,8 +178,6 @@ if __name__ == "__main__":
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("fal", fal_command))
-    app.add_handler(CommandHandler("siir", siir_command))
     app.add_handler(CommandHandler("slap", slap_command))
     
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, yeni_uye))
@@ -185,3 +186,4 @@ if __name__ == "__main__":
     
     print("MeyusBot çalışıyor...")
     app.run_polling()
+    
