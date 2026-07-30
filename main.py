@@ -220,10 +220,14 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Saat Tespiti
-    saat_match = re.search(r"\b([01]?\d|2[0-3])[:.]([0-5]\d)\b", mesaj)
-    if saat_match:
-        await update.message.reply_text(random.choice(SAAT_MOTIVASYONLARI).format(saat=saat_match.group(1)))
-        return
+saat_match = re.search(r"\b([01]?\d|2[0-3])([:.])([0-5]\d)\b", mesaj)
+
+if saat_match:
+    saat = f"{saat_match.group(1)}:{saat_match.group(3)}"
+    await update.message.reply_text(
+        random.choice(SAAT_MOTIVASYONLARI).format(saat=saat)
+    )
+    return
 
     # Meyus / Reply / Mention Kontrolü
     is_reply = update.message.reply_to_message and update.message.reply_to_message.from_user.id == context.bot.id
