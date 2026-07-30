@@ -21,6 +21,9 @@ BOT_TOKEN = os.environ.get("BOT_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
+if not BOT_TOKEN or not GROQ_API_KEY or not GEMINI_API_KEY:
+    raise ValueError("BOT_TOKEN, GROQ_API_KEY veya GEMINI_API_KEY ortam değişkenleri eksik!")
+
 # Groq Yapılandırması
 ai_client = OpenAI(
     api_key=GROQ_API_KEY,
@@ -154,7 +157,8 @@ async def ai_cevap_uret(kullanici_adi, mesaj):
             )
         response = await asyncio.to_thread(cagri)
         return response.choices[0].message.content
-    except:
+    except Exception as e:
+        print(f"ai_cevap_uret hatası: {e}")
         return "Şu an düşüncelerim biraz karışık, birazdan tekrar dener misiniz? 😅"
 
 async def karsilama_uret(isim):
@@ -167,7 +171,8 @@ async def karsilama_uret(isim):
         )
         response = await asyncio.to_thread(lambda: gemini_model.generate_content(prompt))
         return response.text
-    except:
+    except Exception as e:
+        print(f"karsilama_uret hatası: {e}")
         return f"Hoş geldiniz {isim}. Aramıza katıldığınız için memnuniyet duyduk. 🎉"
 
 # =========================================================
@@ -182,7 +187,7 @@ async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     hedef = " ".join(context.args).replace("@", "") if context.args else "birini"
     if update.message.reply_to_message:
         hedef = update.message.reply_to_message.from_user.first_name
-    
+
     mesaj = random.choice(TOKAT_MESAJLARI).format(gonderen=gonderen, hedef=hedef)
     await update.message.reply_text(mesaj)
 
@@ -219,8 +224,8 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(random.choice(OSMANLICA_IYI_GECELER_CEVAPLARI))
         return
 
-    # Saat Tespiti (20:00 ve 20.00)
-    saat_match = re.search(r"\b([01]?\d|2[0-3])[:.]([0-5]\d)\b", mesaj)
+    # Saat Tespiti (20:00, 20.00 veya 20,00 - klavye otomatik düzeltmesi virgüle çevirebiliyor)
+    saat_match = re.search(r"(?<!\d)([01]?\d|2[0-3])[:.,]([0-5]\d)(?!\d)", mesaj)
 
     if saat_match:
         saat = f"{saat_match.group(1)}:{saat_match.group(2)}"
@@ -231,8 +236,11 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Meyus / Reply / Mention Kontrolü
     is_reply = update.message.reply_to_message and update.message.reply_to_message.from_user.id == context.bot.id
-    is_mention = any(ent.type == MessageEntity.MENTION and mesaj[ent.offset:ent.offset+ent.length].lower() == f"@{context.bot.username.lower()}" for ent in update.message.entities or [])
-    
+    is_mention = any(
+        ent.type == MessageEntity.MENTION and mesaj[ent.offset:ent.offset+ent.length].lower() == f"@{context.bot.username.lower()}"
+        for ent in update.message.entities or []
+    )
+
     if "meyus" in mesaj_kucuk or is_reply or is_mention:
         await update.message.chat.send_action("typing")
         cevap = await ai_cevap_uret(user_name, mesaj)
@@ -244,13 +252,13 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 if __name__ == "__main__":
     app = ApplicationBuilder().token(BOT_TOKEN).build()
-    
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("slap", slap_command))
-    
+
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, yeni_uye))
     app.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, ayrilan_uye))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), mesaj_handler))
-    
+
     print("MeyusBot çalışıyor...")
     app.run_polling()
