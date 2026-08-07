@@ -274,12 +274,12 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(YARATICI_CEVABI)
         return
 
-    # Günaydın Kontrolü (Osmanlıca cevap)
+    # Günaydın Kontrolü 
     if any(kelime in mesaj_kucuk for kelime in GUNAYDIN_KELIMELERI):
         await update.message.reply_text(random.choice(OSMANLICA_GUNAYDIN_CEVAPLARI))
         return
 
-    # İyi Geceler Kontrolü (Osmanlıca cevap)
+    # İyi Geceler Kontrolü 
     if any(kelime in mesaj_kucuk for kelime in IYI_GECELER_KELIMELERI):
         await update.message.reply_text(random.choice(OSMANLICA_IYI_GECELER_CEVAPLARI))
         return
