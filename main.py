@@ -2,7 +2,7 @@ import os
 import random
 import re
 import asyncio
-import google.generativeai as genai
+from google import genai
 from openai import OpenAI
 from telegram import Update, MessageEntity
 from telegram.ext import (
@@ -31,9 +31,9 @@ ai_client = OpenAI(
 )
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# Gemini Yapılandırması
-genai.configure(api_key=GEMINI_API_KEY)
-gemini_model = genai.GenerativeModel("gemini-1.5-flash")
+# Gemini Yapılandırması (yeni google-genai SDK)
+gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+GEMINI_MODEL = "gemini-2.5-flash"
 
 def tr_lower(metin: str) -> str:
     if not metin: return ""
@@ -53,7 +53,11 @@ BOT_PERSONA = (
     "Arada sırada emoji kullanabilir, espri, benzetme veya şakacı abartılarla cevabını renklendirebilirsin. "
     "Türkçe konuşuyorsun ve gerektiğinde konuyu biraz uzatıp keyifli, sohbet havasında, 3-6 cümlelik dolu dolu "
     "cevaplar yazabilirsin; kısa geçiştirmek yerine muhabbeti koyulaştırırsın. "
-    "Türkçe yazım ve imla kurallarına kesinlikle dikkat et; yazım yanlışı asla yapma, düzgün ve akıcı bir dil kullan. "
+    "Türkçe dil bilgisi kurallarına son derece titiz davranırsın: özne-yüklem uyumuna, ek yazımına (ayrı/bitişik, "
+    "büyük/küçük harften sonra kesme işareti gibi), noktalama işaretlerine ve kelime seçimine dikkat edersin. "
+    "İngilizceden birebir çevrilmiş, yapay veya bozuk cümle kurmazsın; doğal, akıcı ve günlük konuşulan Türkçe "
+    "kullanırsın. Cevabı yazmadan önce zihninde bir kez daha gözden geçirip yazım ya da dil bilgisi hatası olup "
+    "olmadığını kontrol edersin ve varsa düzeltirsin. "
     "Küfür ve hakaret asla kullanma. Cinsel veya müstehcen hiçbir şey söyleme, temiz kal."
 )
 
@@ -148,22 +152,41 @@ FAL_TEMALARI = [
 # AI FONKSİYONLARI
 # =========================================================
 
+async def _groq_cevap(kullanici_adi, mesaj):
+    def cagri():
+        return ai_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[
+                {"role": "system", "content": BOT_PERSONA},
+                {"role": "user", "content": f"{kullanici_adi}: {mesaj}"}
+            ],
+            max_tokens=400
+        )
+    response = await asyncio.to_thread(cagri)
+    return response.choices[0].message.content
+
 async def ai_cevap_uret(kullanici_adi, mesaj):
+    # Türkçe dil bilgisi kalitesi Gemini'de belirgin şekilde daha iyi olduğu için
+    # birincil model olarak Gemini kullanılıyor; sorun olursa Groq'a düşülüyor.
     try:
-        def cagri():
-            return ai_client.chat.completions.create(
-                model=GROQ_MODEL,
-                messages=[
-                    {"role": "system", "content": BOT_PERSONA},
-                    {"role": "user", "content": f"{kullanici_adi}: {mesaj}"}
-                ],
-                max_tokens=400
-            )
-        response = await asyncio.to_thread(cagri)
-        return response.choices[0].message.content
+        prompt = (
+            f"{BOT_PERSONA}\n\n"
+            f"Aşağıda grup üyesi {kullanici_adi} sana şunu yazdı:\n"
+            f"\"{mesaj}\"\n\n"
+            f"Bu mesaja, yukarıdaki karaktere uygun şekilde cevap ver. Cevabını göndermeden önce "
+            f"Türkçe yazım ve dil bilgisi açısından kendi kendine kontrol et."
+        )
+        response = await asyncio.to_thread(
+            lambda: gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+        )
+        return response.text
     except Exception as e:
-        print(f"ai_cevap_uret hatası: {e}")
-        return "Kafamın içi şu an biraz karman çorman oldu, bir saniye ver de toparlanayım. 😅"
+        print(f"ai_cevap_uret (Gemini) hatası: {e}")
+        try:
+            return await _groq_cevap(kullanici_adi, mesaj)
+        except Exception as e2:
+            print(f"ai_cevap_uret (Groq yedek) hatası: {e2}")
+            return "Kafamın içi şu an biraz karman çorman oldu, bir saniye ver de toparlanayım. 😅"
 
 async def karsilama_uret(isim):
     try:
@@ -171,9 +194,12 @@ async def karsilama_uret(isim):
             f"Sen MeyusBot'sun; muzip, şakacı ve enerjik bir karaktersin. "
             f"Gruba yeni katılan {isim} için 3-5 cümlelik, samimi, esprili ve sıcak bir karşılama mesajı yaz. "
             f"Hafif dalgacı ama incitmeyen bir üslup kullan, birkaç emoji ekleyebilirsin. "
-            f"Türkçe yazım kurallarına dikkat et, imla hatası yapma."
+            f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy, özne-yüklem uyumuna ve ek yazımına dikkat et; "
+            f"göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
         )
-        response = await asyncio.to_thread(lambda: gemini_model.generate_content(prompt))
+        response = await asyncio.to_thread(
+            lambda: gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+        )
         return response.text
     except Exception as e:
         print(f"karsilama_uret hatası: {e}")
@@ -188,9 +214,12 @@ async def fal_uret(kullanici_adi):
             f"komik ama içinde ufak bir motivasyon da barındıran uzunca bir fal yaz. "
             f"En az 6-8 cümle olsun, aşk, kariyer/iş, sağlık ve sürpriz bir olay hakkında en az birer detay geçsin. "
             f"Ciddi bir kehanet gibi değil, samimi ve gülümseten bir üslupla yaz, birkaç emoji kullanabilirsin. "
-            f"Türkçe yazım kurallarına titizlikle dikkat et, imla hatası yapma."
+            f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy, özne-yüklem uyumuna ve ek yazımına dikkat et; "
+            f"göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
         )
-        response = await asyncio.to_thread(lambda: gemini_model.generate_content(prompt))
+        response = await asyncio.to_thread(
+            lambda: gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+        )
         return f"🔮 {kullanici_adi} için {tema} falı:\n\n{response.text}"
     except Exception as e:
         print(f"fal_uret hatası: {e}")
