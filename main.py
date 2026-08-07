@@ -33,7 +33,7 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 
 # Gemini Yapılandırması (yeni google-genai SDK)
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 
 def tr_lower(metin: str) -> str:
     if not metin: return ""
@@ -70,51 +70,53 @@ YARATICI_SORULARI = [
 YARATICI_CEVABI = "Beni Hisoka Morow yarattı. 🎪"
 
 SAAT_MOTIVASYONLARI = [
-    "Saat {saat} olmuş. Zaman su gibi akıyor, değerlendirmeyi unutmayın. ⏳",
-    "{saat}... Bugün için güzel şeyler yapmak adına hâlâ geç değil. 🌿",
-    "Saat tam {saat}. Kısa bir mola verip nefes almak iyi gelebilir. ☕",
-    "{saat} olmuş efendim, umarım gününüz güzel geçiyordur. 🌸",
-    "Vakit {saat}. Bir bardak su içmeyi ihmal etmeyin. 💧",
-    "Saat {saat}. Küçük adımlar büyük sonuçlar doğurur. ✨",
-    "{saat}... Planlarınızı gözden geçirmek için güzel bir vakit. 📋",
-    "Saat {saat}. Kendinize de biraz vakit ayırmayı unutmayın. 🌙",
-    "{saat} olmuş. Umarım işleriniz yolunda gidiyordur. 😊",
-    "Vakit {saat}. Bugün yeni bir şey öğrenmeye ne dersiniz? 📚",
-    "Saat {saat}. Belki kısa bir yürüyüş iyi gelebilir. 🚶",
-    "{saat}... Kahveniz hazırsa sohbet de hazırdır. ☕",
-    "Saat tam {saat}. Hedeflerinize bir adım daha yaklaşabilirsiniz. 🎯",
-    "{saat} olmuş efendim. Moraliniz daima yüksek olsun. 🌞",
-    "Vakit {saat}. Bugünün kıymetini bilin. 🌼",
-    "Saat {saat}. Yorulduysanız biraz dinlenmekten çekinmeyin. 🍀",
-    "{saat}... Her yeni dakika yeni bir fırsattır. 🚀",
-    "Saat tam {saat}. Umarım yüzünüzden tebessüm eksik olmaz. 😊",
-    "{saat} olmuş. Çalışıyorsanız kolaylıklar dilerim. 💼",
-    "Vakit {saat}. Sevdiklerinize bir mesaj atmanın tam zamanı olabilir. ❤️",
-    "Saat {saat}. Küçük bir müzik molası nasıl olur? 🎵",
-    "{saat}... Gününüz bereketli ve huzurlu geçsin efendim. 🤲",
-    "Saat tam {saat}. Sağlığınızı ihmal etmeyin. 🍎",
-    "Vakit {saat}. Bugün de elinizden gelenin en iyisini yapmanız yeterli. 🌟",
-    "{saat} olmuş. Hayırlı ve verimli vakitler dilerim. 🌺"
+    "Saat {saat} olmuş bak, zaman senin haberin olmadan koşuyor. ⏳",
+    "{saat}... Hâlâ bir şeyler yapmak için vakit var, kalk kıpırda! 🌿",
+    "Saat tam {saat}. Bi' mola ver, nefes al, sonra devam. ☕",
+    "{saat} olmuş, umarım günün beni izlemekten daha güzel geçiyordur. 🌸",
+    "Vakit {saat}. Su içmeyi unutma, ben hatırlatayım dedim. 💧",
+    "Saat {saat}. Küçük adımlar, büyük sonuçlar; sen de bir adım at hadi. ✨",
+    "{saat}... Planlarını gözden geçirmenin tam vakti, ya da hiç planın yok, o da olur. 📋😄",
+    "Saat {saat}. Kendine de biraz vakit ayır, telefonu bırak beş dakika. 🌙",
+    "{saat} olmuş. İşler yolunda mı, yoksa bana mı danışıyorsun şu an? 😊",
+    "Vakit {saat}. Bugün yeni bir şey öğrenmeye ne dersin? 📚",
+    "Saat {saat}. Kısa bir yürüyüş iyi gelebilir, otur oturduğun yerden kalk artık. 🚶",
+    "{saat}... Kahve hazırsa sohbet de hazır, gel anlat bakalım. ☕",
+    "Saat tam {saat}. Hedeflerine bir adım daha yaklaştın, ya da yaklaşmadın, ikisi de olur. 🎯",
+    "{saat} olmuş. Moralin yüksek olsun, ben buradayım nasılsa. 🌞",
+    "Vakit {saat}. Günün kıymetini bil, ben bilmiyorum ama sen bil. 🌼",
+    "Saat {saat}. Yorulduysan biraz dinlen, kimse seni zorlamıyor. 🍀",
+    "{saat}... Her dakika yeni bir fırsat, bu dakikayı da kaçırma. 🚀",
+    "Saat tam {saat}. Yüzünde bir gülümseme eksik olmasın, ben espri yapayım o zaman. 😄",
+    "{saat} olmuş. Çalışıyorsan kolaylıklar, kaytarıyorsan da anlıyorum. 💼😉",
+    "Vakit {saat}. Sevdiklerine bir mesaj atmanın tam zamanı, bana değil onlara. ❤️",
+    "Saat {saat}. Küçük bir müzik molası verelim mi? 🎵",
+    "{saat}... Günün bol keyifli, az dramalı geçsin. 🤲😄",
+    "Saat tam {saat}. Sağlığını ihmal etme, ben seni hatırlatayım diye buradayım. 🍎",
+    "Vakit {saat}. Bugün elinden geleni yap, gerisi zaten senin elinde değil. 🌟",
+    "{saat} olmuş. Verimli vakitler, ya da en azından eğlenceli vakitler dilerim. 🌺"
 ]
 
 GUNAYDIN_KELIMELERI = [
     "günaydın", "günaydin", "gunaydın", "gunaydin", "gunaydın efendim"
 ]
-OSMANLICA_GUNAYDIN_CEVAPLARI = [
-    "Sabah-ı şerifiniz hayrola efendim, gününüz bereketli geçsin. 🌅",
-    "Hayırlı sabahlar zât-ı âlinize, bu gün de nice hayırlara vesile olsun. ☀️",
-    "Sabahınız nur olsun, işleriniz rast gitsin efendim. 🌤️",
-    "Hayrola sabahınız, bugün dahi muvaffakiyetler nasip olsun. 🌞"
+GUNAYDIN_CEVAPLARI = [
+    "Günaydın! Kahveni içmeden bana yaklaşma bu arada, tehlikeliyim. ☕😄",
+    "Günaydın günaydın! Bugün de dünyayı fethetmeye mi geldik yoksa sadece hayatta kalmaya mı? 😎",
+    "Günaydııın! Gözlerin daha yarı açık ama enerjin tam bende. 😆",
+    "Sabah sabah buradasın demek, helal olsun! Günaydın şampiyon. 🌞",
+    "Günaydın! Uyku hâlâ üstünde duruyor gibi ama olsun, gülümse bakalım. 😄"
 ]
 
 IYI_GECELER_KELIMELERI = [
     "iyi geceler", "iyi uykular", "iyi geceler efendim"
 ]
-OSMANLICA_IYI_GECELER_CEVAPLARI = [
-    "Geceniz hayrola efendim, rahat bir uykuya kavuşasınız. 🌙",
-    "Hayırlı geceler zât-ı âlinize, Cenab-ı Hak rahatlık versin. ✨",
-    "Şeb-i safâlar dilerim, sabahlara sağlıcakla erişesiniz. 🌌",
-    "Geceniz mübarek olsun, huzur içinde istirahat buyurunuz. 🌜"
+IYI_GECELER_CEVAPLARI = [
+    "İyi geceler! Rüyanda beni görürsen sakın korkma, sadece espri yapıyorumdur. 😴",
+    "Hadi bakalım, git yat! Yarın da seninle dalga geçmek için enerjimi topluyorum. 🌙😄",
+    "İyi geceler! Telefonu bırak, yastığa sarıl, yarın yine buradayım. 📱➡️🛏️",
+    "Tatlı rüyalar! Kâbus görürsen beni çağır, komik bir şeyler söylerim, korku kaçar. 👻😂",
+    "İyi geceler! Sabaha kadar bol uyku, az internet. 💤"
 ]
 
 TOKAT_MESAJLARI = [
@@ -274,14 +276,14 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(YARATICI_CEVABI)
         return
 
-    # Günaydın Kontrolü 
+    # Günaydın Kontrolü (Osmanlıca cevap)
     if any(kelime in mesaj_kucuk for kelime in GUNAYDIN_KELIMELERI):
-        await update.message.reply_text(random.choice(OSMANLICA_GUNAYDIN_CEVAPLARI))
+        await update.message.reply_text(random.choice(GUNAYDIN_CEVAPLARI))
         return
 
-    # İyi Geceler Kontrolü 
+    # İyi Geceler Kontrolü (Osmanlıca cevap)
     if any(kelime in mesaj_kucuk for kelime in IYI_GECELER_KELIMELERI):
-        await update.message.reply_text(random.choice(OSMANLICA_IYI_GECELER_CEVAPLARI))
+        await update.message.reply_text(random.choice(IYI_GECELER_CEVAPLARI))
         return
 
     # Saat Tespiti (20:00, 20.00 veya 20,00 - klavye otomatik düzeltmesi virgüle çevirebiliyor)
@@ -323,4 +325,4 @@ if __name__ == "__main__":
 
     print("MeyusBot çalışıyor...")
     app.run_polling()
-    
+        
