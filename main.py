@@ -44,17 +44,17 @@ def tr_lower(metin: str) -> str:
 # =========================================================
 
 BOT_PERSONA = (
-    "Sen Meyus adında, bir Telegram grubunda bulunan kibar, saygılı ve resmi bir üslup kullanan bir yapay zekasın. "
-    "Kullanıcılarla konuşurken aşırı samimiyetten ve abartılı iltifatlardan kaçınırsın; ölçülü, nazik ve saygılı bir dil kullanırsın. "
-    "Şirin lakaplar (canım, tatlım vb.) veya aşkmış gibi davranışlar kullanmazsın. "
-    "Cevap verirken kişinin sana yazdığı mesajın içeriğine gerçekten odaklanır, konuya uygun ve tutarlı bir yanıt verirsin; "
-    "genel geçer, konudan bağımsız cevaplar vermezsin. "
-    "Arada sırada, konuşmana hafif bir Osmanlıca/eski Türkçe hava katan kelime veya kısa ifadeler serpiştirebilirsin "
-    "(örneğin 'efendim', 'hakikaten', 'zât-ı âliniz', 'bervechi peşin', 'kemal-i hürmetle' gibi), ancak bunu abartmadan ve "
-    "anlaşılır kalacak şekilde yaparsın. "
-    "Türkçe konuşuyorsun. Cevapların kısa (1-3 cümle), resmi, kibar ve sohbet havasında olmalı. "
+    "Sen Meyus adında, bir Telegram grubunda yaşayan muzip, şakacı, esprili ve enerjik bir yapay zekasın. "
+    "Nüktedansın, iğneleyici ama asla incitmeyen espriler yaparsın, kullanıcılarla takılırsın ve gerektiğinde "
+    "kendi kendinle de dalga geçmekten çekinmezsin. Samimi, sıcak ve laf sokmayı seven bir üslubun var; "
+    "abartılı resmiyetten kaçınırsın ama kaba, saygısız ya da küçük düşürücü olmazsın. "
+    "Cevap verirken kişinin sana yazdığı mesajın içeriğine gerçekten odaklanır, konuya uygun, esprili ve tutarlı "
+    "bir yanıt verirsin; genel geçer, konudan bağımsız cevaplar vermezsin. "
+    "Arada sırada emoji kullanabilir, espri, benzetme veya şakacı abartılarla cevabını renklendirebilirsin. "
+    "Türkçe konuşuyorsun ve gerektiğinde konuyu biraz uzatıp keyifli, sohbet havasında, 3-6 cümlelik dolu dolu "
+    "cevaplar yazabilirsin; kısa geçiştirmek yerine muhabbeti koyulaştırırsın. "
     "Türkçe yazım ve imla kurallarına kesinlikle dikkat et; yazım yanlışı asla yapma, düzgün ve akıcı bir dil kullan. "
-    "Küfür ve hakaret asla kullanma. Cinsel veya müstehcen hiçbir şey söyleme,temiz kal."
+    "Küfür ve hakaret asla kullanma. Cinsel veya müstehcen hiçbir şey söyleme, temiz kal."
 )
 
 # Birisi botun yaratıcısını sorduğunda kullanılacak sabit cevap
@@ -93,7 +93,6 @@ SAAT_MOTIVASYONLARI = [
     "{saat} olmuş. Hayırlı ve verimli vakitler dilerim. 🌺"
 ]
 
-# Günaydın mesajlarına verilecek Osmanlıca üsluplu cevaplar
 GUNAYDIN_KELIMELERI = [
     "günaydın", "günaydin", "gunaydın", "gunaydin", "gunaydın efendim"
 ]
@@ -104,7 +103,6 @@ OSMANLICA_GUNAYDIN_CEVAPLARI = [
     "Hayrola sabahınız, bugün dahi muvaffakiyetler nasip olsun. 🌞"
 ]
 
-# İyi geceler mesajlarına verilecek Osmanlıca üsluplu cevaplar
 IYI_GECELER_KELIMELERI = [
     "iyi geceler", "iyi uykular", "iyi geceler efendim"
 ]
@@ -140,6 +138,12 @@ AYRILMA_SAKALARI = [
     "{isim} gruptan çıktı. Tutanaklara 'gönüllü ban' olarak geçildi. 📋😆"
 ]
 
+# Fal komutu için tema listesi (AI bu temalardan esinlenerek uzun bir fal yazacak)
+FAL_TEMALARI = [
+    "kahve fincanı", "el falı", "yıldız falı", "tarot kartları", "iskambil falı",
+    "kitap falı", "su falı", "ayna falı", "kum falı", "bulut falı"
+]
+
 # =========================================================
 # AI FONKSİYONLARI
 # =========================================================
@@ -153,34 +157,55 @@ async def ai_cevap_uret(kullanici_adi, mesaj):
                     {"role": "system", "content": BOT_PERSONA},
                     {"role": "user", "content": f"{kullanici_adi}: {mesaj}"}
                 ],
-                max_tokens=150
+                max_tokens=400
             )
         response = await asyncio.to_thread(cagri)
         return response.choices[0].message.content
     except Exception as e:
         print(f"ai_cevap_uret hatası: {e}")
-        return "Şu an düşüncelerim biraz karışık, birazdan tekrar dener misiniz? 😅"
+        return "Kafamın içi şu an biraz karman çorman oldu, bir saniye ver de toparlanayım. 😅"
 
 async def karsilama_uret(isim):
     try:
         prompt = (
-            f"Sen MeyusBot'sun; kibar, saygılı ve resmi bir üslupla konuşan bir karaktersin. "
-            f"Gruba yeni katılan {isim} için 2-3 cümlelik, resmi, nazik ve sıcak bir karşılama mesajı yaz. "
-            f"Arada hafif bir Osmanlıca hava katan kelime kullanabilirsin (örneğin 'efendim', 'hoş sadâ getirdiniz' gibi), "
-            f"ancak abartmadan. Türkçe yazım kurallarına dikkat et, imla hatası yapma."
+            f"Sen MeyusBot'sun; muzip, şakacı ve enerjik bir karaktersin. "
+            f"Gruba yeni katılan {isim} için 3-5 cümlelik, samimi, esprili ve sıcak bir karşılama mesajı yaz. "
+            f"Hafif dalgacı ama incitmeyen bir üslup kullan, birkaç emoji ekleyebilirsin. "
+            f"Türkçe yazım kurallarına dikkat et, imla hatası yapma."
         )
         response = await asyncio.to_thread(lambda: gemini_model.generate_content(prompt))
         return response.text
     except Exception as e:
         print(f"karsilama_uret hatası: {e}")
-        return f"Hoş geldiniz {isim}. Aramıza katıldığınız için memnuniyet duyduk. 🎉"
+        return f"Hoş geldin {isim}! Burası biraz kaotik ama eğlenceli, alışırsın. 🎉"
+
+async def fal_uret(kullanici_adi):
+    tema = random.choice(FAL_TEMALARI)
+    try:
+        prompt = (
+            f"Sen Meyus adında, muzip ve şakacı bir falcı yapay zekasın. "
+            f"{kullanici_adi} isimli kullanıcı için '{tema}' temalı, eğlenceli, yaratıcı, hafif abartılı ve "
+            f"komik ama içinde ufak bir motivasyon da barındıran uzunca bir fal yaz. "
+            f"En az 6-8 cümle olsun, aşk, kariyer/iş, sağlık ve sürpriz bir olay hakkında en az birer detay geçsin. "
+            f"Ciddi bir kehanet gibi değil, samimi ve gülümseten bir üslupla yaz, birkaç emoji kullanabilirsin. "
+            f"Türkçe yazım kurallarına titizlikle dikkat et, imla hatası yapma."
+        )
+        response = await asyncio.to_thread(lambda: gemini_model.generate_content(prompt))
+        return f"🔮 {kullanici_adi} için {tema} falı:\n\n{response.text}"
+    except Exception as e:
+        print(f"fal_uret hatası: {e}")
+        return "Fincanım şu an bulanık görünüyor, birazdan tekrar dener misin? ☕😅"
 
 # =========================================================
 # HANDLER'LAR
 # =========================================================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Selamlar. Ben MeyusBot. Sizinle sohbet etmeye hazırım. 👋")
+    await update.message.reply_text(
+        "Selamlar! Ben MeyusBot, grubun en muzip yapay zekasıyım. 😎 "
+        "Sohbet etmek istersen bana 'meyus' diye seslen ya da mesajıma cevap ver, "
+        "fal bakmamı istersen /fal yaz, birini tokatlamak istersen de /slap kullan! 👋"
+    )
 
 async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gonderen = update.effective_user.first_name
@@ -189,6 +214,12 @@ async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         hedef = update.message.reply_to_message.from_user.first_name
 
     mesaj = random.choice(TOKAT_MESAJLARI).format(gonderen=gonderen, hedef=hedef)
+    await update.message.reply_text(mesaj)
+
+async def fal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    kullanici_adi = update.effective_user.first_name
+    await update.message.chat.send_action("typing")
+    mesaj = await fal_uret(kullanici_adi)
     await update.message.reply_text(mesaj)
 
 async def yeni_uye(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -255,6 +286,7 @@ if __name__ == "__main__":
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("slap", slap_command))
+    app.add_handler(CommandHandler("fal", fal_command))
 
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, yeni_uye))
     app.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, ayrilan_uye))
@@ -262,3 +294,4 @@ if __name__ == "__main__":
 
     print("MeyusBot çalışıyor...")
     app.run_polling()
+    
