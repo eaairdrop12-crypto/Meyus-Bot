@@ -218,41 +218,50 @@ async def ai_cevap_uret(kullanici_adi, mesaj):
             return "Kafamın içi şu an biraz karman çorman oldu, bir saniye ver de toparlanayım. 😅"
 
 async def karsilama_uret(isim):
+    prompt = (
+        f"Sen MeyusBot'sun; muzip, şakacı ve enerjik bir karaktersin. "
+        f"Gruba yeni katılan {isim} için en fazla 2-3 cümlelik, samimi, esprili ve sıcak bir karşılama "
+        f"mesajı yaz. Hafif dalgacı ama incitmeyen bir üslup kullan, birkaç emoji ekleyebilirsin. "
+        f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy, özne-yüklem uyumuna ve ek yazımına dikkat et; "
+        f"göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
+    )
     try:
-        prompt = (
-            f"Sen MeyusBot'sun; muzip, şakacı ve enerjik bir karaktersin. "
-            f"Gruba yeni katılan {isim} için en fazla 2-3 cümlelik, samimi, esprili ve sıcak bir karşılama "
-            f"mesajı yaz. Hafif dalgacı ama incitmeyen bir üslup kullan, birkaç emoji ekleyebilirsin. "
-            f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy, özne-yüklem uyumuna ve ek yazımına dikkat et; "
-            f"göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
-        )
         response = await asyncio.to_thread(
             lambda: gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         )
         return response.text
     except Exception as e:
-        print(f"karsilama_uret hatası: {e}")
-        return f"Hoş geldin {isim}! Burası biraz kaotik ama eğlenceli, alışırsın. 🎉"
+        print(f"karsilama_uret (Gemini) hatası: {e}")
+        try:
+            return await _groq_cevap("Sistem", prompt)
+        except Exception as e2:
+            print(f"karsilama_uret (Groq yedek) hatası: {e2}")
+            return f"Hoş geldin {isim}! Burası biraz kaotik ama eğlenceli, alışırsın. 🎉"
 
 async def fal_uret(kullanici_adi):
     tema = random.choice(FAL_TEMALARI)
+    prompt = (
+        f"Sen Meyus adında, muzip ve şakacı bir falcı yapay zekasın. "
+        f"{kullanici_adi} isimli kullanıcı için '{tema}' temalı, eğlenceli, yaratıcı, hafif abartılı ve "
+        f"komik ama içinde ufak bir motivasyon da barındıran uzunca bir fal yaz. "
+        f"En az 6-8 cümle olsun, aşk, kariyer/iş, sağlık ve sürpriz bir olay hakkında en az birer detay geçsin. "
+        f"Ciddi bir kehanet gibi değil, samimi ve gülümseten bir üslupla yaz, birkaç emoji kullanabilirsin. "
+        f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy, özne-yüklem uyumuna ve ek yazımına dikkat et; "
+        f"göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
+    )
     try:
-        prompt = (
-            f"Sen Meyus adında, muzip ve şakacı bir falcı yapay zekasın. "
-            f"{kullanici_adi} isimli kullanıcı için '{tema}' temalı, eğlenceli, yaratıcı, hafif abartılı ve "
-            f"komik ama içinde ufak bir motivasyon da barındıran uzunca bir fal yaz. "
-            f"En az 6-8 cümle olsun, aşk, kariyer/iş, sağlık ve sürpriz bir olay hakkında en az birer detay geçsin. "
-            f"Ciddi bir kehanet gibi değil, samimi ve gülümseten bir üslupla yaz, birkaç emoji kullanabilirsin. "
-            f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy, özne-yüklem uyumuna ve ek yazımına dikkat et; "
-            f"göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
-        )
         response = await asyncio.to_thread(
             lambda: gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
         )
         return f"🔮 {kullanici_adi} için {tema} falı:\n\n{response.text}"
     except Exception as e:
-        print(f"fal_uret hatası: {e}")
-        return "Fincanım şu an bulanık görünüyor, birazdan tekrar dener misin? ☕😅"
+        print(f"fal_uret (Gemini) hatası: {e}")
+        try:
+            metin = await _groq_cevap("Sistem", prompt)
+            return f"🔮 {kullanici_adi} için {tema} falı:\n\n{metin}"
+        except Exception as e2:
+            print(f"fal_uret (Groq yedek) hatası: {e2}")
+            return "Fincanım şu an bulanık görünüyor, birazdan tekrar dener misin? ☕😅"
 
 # =========================================================
 # HANDLER'LAR
@@ -365,4 +374,4 @@ if __name__ == "__main__":
 
     print("MeyusBot çalışıyor...")
     app.run_polling()
-    
+        
