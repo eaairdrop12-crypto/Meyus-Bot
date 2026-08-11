@@ -1,6 +1,7 @@
 import os
 import random
 import re
+import html
 import asyncio
 from google import genai
 from openai import OpenAI
@@ -51,8 +52,8 @@ BOT_PERSONA = (
     "Cevap verirken kişinin sana yazdığı mesajın içeriğine gerçekten odaklanır, konuya uygun, esprili ve tutarlı "
     "bir yanıt verirsin; genel geçer, konudan bağımsız cevaplar vermezsin. "
     "Arada sırada emoji kullanabilir, espri, benzetme veya şakacı abartılarla cevabını renklendirebilirsin. "
-    "Türkçe konuşuyorsun ve gerektiğinde konuyu biraz uzatıp keyifli, sohbet havasında, 3-6 cümlelik dolu dolu "
-    "cevaplar yazabilirsin; kısa geçiştirmek yerine muhabbeti koyulaştırırsın. "
+    "Türkçe konuşuyorsun ve cevaplarını kısa ve öz tutarsın: en fazla 2-3 cümle yazarsın, gereksiz uzatmadan "
+    "konuya odaklanır, laf kalabalığı yapmazsın. "
     "Türkçe dil bilgisi kurallarına son derece titiz davranırsın: özne-yüklem uyumuna, ek yazımına (ayrı/bitişik, "
     "büyük/küçük harften sonra kesme işareti gibi), noktalama işaretlerine ve kelime seçimine dikkat edersin. "
     "İngilizceden birebir çevrilmiş, yapay veya bozuk cümle kurmazsın; doğal, akıcı ve günlük konuşulan Türkçe "
@@ -134,7 +135,32 @@ TOKAT_MESAJLARI = [
     "{gonderen}, {hedef}'e uzaktan kumandayla nişan aldı! 📺",
     "{gonderen}, {hedef}'i devasa bir yastıkla havaya uçurdu! 🪶",
     "{gonderen}, {hedef}'e bir tabak makarna fırlattı! 🍝",
-    "{gonderen}, {hedef}'i süpürgeyle kapı dışına süpürdü! 🧹"
+    "{gonderen}, {hedef}'i süpürgeyle kapı dışına süpürdü! 🧹",
+    "{gonderen}, {hedef}'i kaşıkla dürttü, çok acıdı galiba! 🥄",
+    "{gonderen}, {hedef}'e karpuz kabuğuyla şaplak attı! 🍉",
+    "{gonderen}, {hedef}'i bir tokat daha attı, alışkanlık yaptı sanki! ✋",
+    "{gonderen}, {hedef}'e ütüyle ütü çekmeye çalıştı, kaçamadı! 🔥",
+    "{gonderen}, {hedef}'i bir demet muzla dövdü! 🍌",
+    "{gonderen}, {hedef}'e kitap fırlattı, bilgiyle bile acıtabiliyor! 📖",
+    "{gonderen}, {hedef}'i patlıcanla sopaladı! 🍆",
+    "{gonderen}, {hedef}'e ayakkabı fırlattı, tam surata denk geldi! 👟",
+    "{gonderen}, {hedef}'i bir tas çorbayla haşladı! 🍲",
+    "{gonderen}, {hedef}'e kürekle bir güzel vurdu! 🏓",
+    "{gonderen}, {hedef}'i sallayarak dövdü, sarsıntı geçirdi! 🌀",
+    "{gonderen}, {hedef}'e bir kova soğuk suyla ıslattı! 🪣",
+    "{gonderen}, {hedef}'i çekiçle vurdu ama şaka amaçlı tabii ki! 🔨",
+    "{gonderen}, {hedef}'e domates fırlattı, salata olmadan! 🍅",
+    "{gonderen}, {hedef}'i şemsiye ile dürttü, yağmur yağmadan! ☂️",
+    "{gonderen}, {hedef}'e bir tekme savurdu, havada kaldı! 🦵",
+    "{gonderen}, {hedef}'i bir avuç patlamış mısırla bombaladı! 🍿",
+    "{gonderen}, {hedef}'e telefon rehberiyle vurdu, eski usül! 📱",
+    "{gonderen}, {hedef}'i bir salatalıkla dürttü! 🥒",
+    "{gonderen}, {hedef}'e bir tokat daha, bu sefer sol elden! 🖐️",
+    "{gonderen}, {hedef}'i kova kapağıyla kalkan gibi savurdu! 🛡️",
+    "{gonderen}, {hedef}'e bir dilim limon fırlattı, ekşilik garanti! 🍋",
+    "{gonderen}, {hedef}'i pijamayla boğuşturdu! 🥱",
+    "{gonderen}, {hedef}'e bir avuç un fırlattı, hamur ustası oldu! 🍞",
+    "{gonderen}, {hedef}'i bir sopa sallayarak kovaladı! 🥍"
 ]
 
 AYRILMA_SAKALARI = [
@@ -162,7 +188,7 @@ async def _groq_cevap(kullanici_adi, mesaj):
                 {"role": "system", "content": BOT_PERSONA},
                 {"role": "user", "content": f"{kullanici_adi}: {mesaj}"}
             ],
-            max_tokens=400
+            max_tokens=150
         )
     response = await asyncio.to_thread(cagri)
     return response.choices[0].message.content
@@ -175,8 +201,9 @@ async def ai_cevap_uret(kullanici_adi, mesaj):
             f"{BOT_PERSONA}\n\n"
             f"Aşağıda grup üyesi {kullanici_adi} sana şunu yazdı:\n"
             f"\"{mesaj}\"\n\n"
-            f"Bu mesaja, yukarıdaki karaktere uygun şekilde cevap ver. Cevabını göndermeden önce "
-            f"Türkçe yazım ve dil bilgisi açısından kendi kendine kontrol et."
+            f"Bu mesaja, yukarıdaki karaktere uygun şekilde cevap ver. Cevabın KESİNLİKLE en fazla 2-3 cümle "
+            f"olsun, kısa ve öz yaz. Cevabını göndermeden önce Türkçe yazım ve dil bilgisi açısından kendi "
+            f"kendine kontrol et."
         )
         response = await asyncio.to_thread(
             lambda: gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
@@ -194,8 +221,8 @@ async def karsilama_uret(isim):
     try:
         prompt = (
             f"Sen MeyusBot'sun; muzip, şakacı ve enerjik bir karaktersin. "
-            f"Gruba yeni katılan {isim} için 2-4 cümlelik, samimi, esprili ve sıcak bir karşılama mesajı yaz. "
-            f"Hafif dalgacı ama incitmeyen bir üslup kullan, birkaç emoji ekleyebilirsin. "
+            f"Gruba yeni katılan {isim} için en fazla 2-3 cümlelik, samimi, esprili ve sıcak bir karşılama "
+            f"mesajı yaz. Hafif dalgacı ama incitmeyen bir üslup kullan, birkaç emoji ekleyebilirsin. "
             f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy, özne-yüklem uyumuna ve ek yazımına dikkat et; "
             f"göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
         )
@@ -238,14 +265,27 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "fal bakmamı istersen /fal yaz, birini tokatlamak istersen de /slap kullan! 👋"
     )
 
+def kullaniciyi_etiketle(kullanici):
+    """tg://user?id=... linkiyle gerçek, tıklanabilir bir etiket (mention) oluşturur."""
+    ad = html.escape(kullanici.first_name)
+    return f'<a href="tg://user?id={kullanici.id}">{ad}</a>'
+
 async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    gonderen = update.effective_user.first_name
-    hedef = " ".join(context.args).replace("@", "") if context.args else "birini"
+    gonderen = kullaniciyi_etiketle(update.effective_user)
+
     if update.message.reply_to_message:
-        hedef = update.message.reply_to_message.from_user.first_name
+        # Reply ile kullanılmışsa hedefin gerçek kullanıcı bilgisi elimizde,
+        # bu yüzden onu gerçek bir mention olarak etiketleyebiliriz.
+        hedef = kullaniciyi_etiketle(update.message.reply_to_message.from_user)
+    elif context.args:
+        # /slap @kullaniciadi şeklinde yazılmışsa Telegram bu @kullaniciadi'nı
+        # HTML modunda da otomatik olarak tıklanabilir mention'a çevirir.
+        hedef = html.escape(" ".join(context.args))
+    else:
+        hedef = "birini"
 
     mesaj = random.choice(TOKAT_MESAJLARI).format(gonderen=gonderen, hedef=hedef)
-    await update.message.reply_text(mesaj)
+    await update.message.reply_text(mesaj, parse_mode="HTML")
 
 async def fal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kullanici_adi = update.effective_user.first_name
@@ -325,4 +365,4 @@ if __name__ == "__main__":
 
     print("MeyusBot çalışıyor...")
     app.run_polling()
-        
+    
