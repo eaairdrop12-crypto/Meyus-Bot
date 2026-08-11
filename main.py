@@ -194,7 +194,7 @@ async def karsilama_uret(isim):
     try:
         prompt = (
             f"Sen MeyusBot'sun; muzip, şakacı ve enerjik bir karaktersin. "
-            f"Gruba yeni katılan {isim} için 3-5 cümlelik, samimi, esprili ve sıcak bir karşılama mesajı yaz. "
+            f"Gruba yeni katılan {isim} için 2-4 cümlelik, samimi, esprili ve sıcak bir karşılama mesajı yaz. "
             f"Hafif dalgacı ama incitmeyen bir üslup kullan, birkaç emoji ekleyebilirsin. "
             f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy, özne-yüklem uyumuna ve ek yazımına dikkat et; "
             f"göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
