@@ -70,32 +70,44 @@ YARATICI_SORULARI = [
 ]
 YARATICI_CEVABI = "Beni Hisoka Morow yarattı. 🎪"
 
+# Saat mesajları (romantik / duygusal ton)
 SAAT_MOTIVASYONLARI = [
-    "Saat {saat} olmuş bak, zaman senin haberin olmadan koşuyor. ⏳",
-    "{saat}... Hâlâ bir şeyler yapmak için vakit var, kalk kıpırda! 🌿",
-    "Saat tam {saat}. Bi' mola ver, nefes al, sonra devam. ☕",
-    "{saat} olmuş, umarım günün beni izlemekten daha güzel geçiyordur. 🌸",
-    "Vakit {saat}. Su içmeyi unutma, ben hatırlatayım dedim. 💧",
-    "Saat {saat}. Küçük adımlar, büyük sonuçlar; sen de bir adım at hadi. ✨",
-    "{saat}... Planlarını gözden geçirmenin tam vakti, ya da hiç planın yok, o da olur. 📋😄",
-    "Saat {saat}. Kendine de biraz vakit ayır, telefonu bırak beş dakika. 🌙",
-    "{saat} olmuş. İşler yolunda mı, yoksa bana mı danışıyorsun şu an? 😊",
-    "Vakit {saat}. Bugün yeni bir şey öğrenmeye ne dersin? 📚",
-    "Saat {saat}. Kısa bir yürüyüş iyi gelebilir, otur oturduğun yerden kalk artık. 🚶",
-    "{saat}... Kahve hazırsa sohbet de hazır, gel anlat bakalım. ☕",
-    "Saat tam {saat}. Hedeflerine bir adım daha yaklaştın, ya da yaklaşmadın, ikisi de olur. 🎯",
-    "{saat} olmuş. Moralin yüksek olsun, ben buradayım nasılsa. 🌞",
-    "Vakit {saat}. Günün kıymetini bil, ben bilmiyorum ama sen bil. 🌼",
-    "Saat {saat}. Yorulduysan biraz dinlen, kimse seni zorlamıyor. 🍀",
-    "{saat}... Her dakika yeni bir fırsat, bu dakikayı da kaçırma. 🚀",
-    "Saat tam {saat}. Yüzünde bir gülümseme eksik olmasın, ben espri yapayım o zaman. 😄",
-    "{saat} olmuş. Çalışıyorsan kolaylıklar, kaytarıyorsan da anlıyorum. 💼😉",
-    "Vakit {saat}. Sevdiklerine bir mesaj atmanın tam zamanı, bana değil onlara. ❤️",
-    "Saat {saat}. Küçük bir müzik molası verelim mi? 🎵",
-    "{saat}... Günün bol keyifli, az dramalı geçsin. 🤲😄",
-    "Saat tam {saat}. Sağlığını ihmal etme, ben seni hatırlatayım diye buradayım. 🍎",
-    "Vakit {saat}. Bugün elinden geleni yap, gerisi zaten senin elinde değil. 🌟",
-    "{saat} olmuş. Verimli vakitler, ya da en azından eğlenceli vakitler dilerim. 🌺"
+    "Saat {saat}... Aklıma bir anda sen geldin, sebebini bilmiyorum. 🌙",
+    "{saat} oldu. Nerede olursan ol, iyi olduğunu bilmek bile içimi ısıtıyor. 💛",
+    "Saat tam {saat}. Bu saatte birinin seni düşündüğünü bil istedim. 🌸",
+    "{saat}... Gün ne kadar yorucu geçerse geçsin, bu mesaj sana küçük bir mola olsun. 🤍",
+    "Vakit {saat}. Uzakta da olsak, aklımda hep bir köşen var. ✨",
+    "Saat {saat}. Bugün kendine iyi baktın mı, yoksa yine herkesi kendinden önce mi düşündün? 🌷",
+    "{saat} olmuş... Bazen sadece 'iyi misin' demek istiyor insan, işte şimdi öyle bir an. 💌",
+    "Saat tam {saat}. Sesini duymasam da, buradan sana sarılıyorum. 🤗",
+    "{saat}... Gülümsediğini hayal ediyorum şu an, umarım gerçekten öyledir. 😊",
+    "Vakit {saat}. Ne kadar meşgul olursan ol, unutulmadığını bil. 🌼",
+    "Saat {saat}. Bugün biri sana teşekkür etmedi mi? Ben ediyorum, sadece var olduğun için. 🙏",
+    "{saat}... Kalbim sana dair küçük bir hatırlatma yolluyor. 💫",
+    "Saat tam {saat}. Yorgunsan dinlen, üzgünsen anlat, ben buradayım. 🕊️",
+    "{saat} olmuş. Bu saatte sana iyi geceler değil, iyi bir kalp diliyorum. 💗",
+    "Vakit {saat}. Sen farkında olmasan da, birilerinin gününü güzelleştiriyorsun. 🌟",
+    "Saat {saat}. Uzaklar yakın olsun, hasretler kısa. 🌊",
+    "{saat}... Bugün ne kadar değerli olduğunu hatırlatmak istedim sadece. 🌹",
+    "Saat tam {saat}. Sana sarılmak isterdim şu an, sözcükler de fena değil aslında. 🤍",
+    "{saat} olmuş. Kimse söylemese de ben söylüyorum: iyi ki varsın. 💛",
+    "Vakit {saat}. Bu mesaj küçük ama içindeki duygu büyük. 💌",
+    "Saat {saat}. Belki uzaksın ama düşüncelerim hep yanında. 🌙",
+    "{saat}... Gün bitmeden bil istedim, önemlisin. 🌸",
+    "Saat tam {saat}. Kalbin ne kadar yorgun olursa olsun, dinlenmeyi hak ediyorsun. 🕯️",
+    "Vakit {saat}. Sana dair her şey bir yerlerde hâlâ anlam ifade ediyor. 💫",
+    "{saat} olmuş. Bu saatte tek dileğim, iyi olman. 🤍"
+]
+
+# Saat mesajlarına eşlik edecek hazır görsel URL'leri
+SAAT_FOTOGRAFLARI = [
+    "https://images.unsplash.com/photo-1518199266791-5375a83190b7",  # gece gökyüzü
+    "https://images.unsplash.com/photo-1518895949257-7621c3c786d7",  # yıldızlar
+    "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869",  # gün batımı
+    "https://images.unsplash.com/photo-1502082553048-f009c37129b9",  # gece manzarası
+    "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e",  # yıldızlı gökyüzü
+    "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8",  # dağ manzarası şafak
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",  # yıldız kayması
 ]
 
 GUNAYDIN_KELIMELERI = [
@@ -325,12 +337,12 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(YARATICI_CEVABI)
         return
 
-    # Günaydın Kontrolü (Osmanlıca cevap)
+    # Günaydın Kontrolü
     if any(kelime in mesaj_kucuk for kelime in GUNAYDIN_KELIMELERI):
         await update.message.reply_text(random.choice(GUNAYDIN_CEVAPLARI))
         return
 
-    # İyi Geceler Kontrolü (Osmanlıca cevap)
+    # İyi Geceler Kontrolü
     if any(kelime in mesaj_kucuk for kelime in IYI_GECELER_KELIMELERI):
         await update.message.reply_text(random.choice(IYI_GECELER_CEVAPLARI))
         return
@@ -340,9 +352,13 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if saat_match:
         saat = f"{saat_match.group(1)}:{saat_match.group(2)}"
-        await update.message.reply_text(
-            random.choice(SAAT_MOTIVASYONLARI).format(saat=saat)
-        )
+        metin = random.choice(SAAT_MOTIVASYONLARI).format(saat=saat)
+        foto_url = random.choice(SAAT_FOTOGRAFLARI)
+        try:
+            await update.message.reply_photo(photo=foto_url, caption=metin)
+        except Exception as e:
+            print(f"Saat fotoğrafı gönderilemedi: {e}")
+            await update.message.reply_text(metin)
         return
 
     # Meyus / Reply / Mention Kontrolü
@@ -374,4 +390,4 @@ if __name__ == "__main__":
 
     print("MeyusBot çalışıyor...")
     app.run_polling()
-        
+    
