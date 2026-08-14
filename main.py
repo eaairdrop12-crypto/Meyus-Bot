@@ -100,14 +100,18 @@ SAAT_MOTIVASYONLARI = [
 ]
 
 # Saat mesajlarına eşlik edecek hazır görsel URL'leri
+# NOT: Unsplash CDN'inden gelen görsellerin Telegram tarafından her zaman
+# "resim" olarak tanınması için format/boyut parametreleri eklendi.
+# Parametresiz URL'ler bazen HTML/redirect döndürüp
+# "Wrong type of the web page content" hatasına sebep oluyordu.
 SAAT_FOTOGRAFLARI = [
-    "https://images.unsplash.com/photo-1518199266791-5375a83190b7",  # gece gökyüzü
-    "https://images.unsplash.com/photo-1518895949257-7621c3c786d7",  # yıldızlar
-    "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869",  # gün batımı
-    "https://images.unsplash.com/photo-1502082553048-f009c37129b9",  # gece manzarası
-    "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e",  # yıldızlı gökyüzü
-    "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8",  # dağ manzarası şafak
-    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",  # yıldız kayması
+    "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1080&q=80",  # gece gökyüzü
+    "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=1080&q=80",  # yıldızlar
+    "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=1080&q=80",  # gün batımı
+    "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1080&q=80",  # gece manzarası
+    "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&w=1080&q=80",  # yıldızlı gökyüzü
+    "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1080&q=80",  # dağ manzarası şafak
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1080&q=80",  # yıldız kayması
 ]
 
 GUNAYDIN_KELIMELERI = [
@@ -390,4 +394,3 @@ if __name__ == "__main__":
 
     print("MeyusBot çalışıyor...")
     app.run_polling()
-    
