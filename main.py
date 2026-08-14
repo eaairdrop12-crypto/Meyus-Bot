@@ -3,8 +3,10 @@ import random
 import re
 import html
 import asyncio
+
 from google import genai
 from openai import OpenAI
+
 from telegram import Update, MessageEntity
 from telegram.ext import (
     ApplicationBuilder,
@@ -23,54 +25,154 @@ GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 if not BOT_TOKEN or not GROQ_API_KEY or not GEMINI_API_KEY:
-    raise ValueError("BOT_TOKEN, GROQ_API_KEY veya GEMINI_API_KEY ortam değişkenleri eksik!")
+    raise ValueError(
+        "BOT_TOKEN, GROQ_API_KEY veya GEMINI_API_KEY ortam değişkenleri eksik!"
+    )
 
-# Groq Yapılandırması
+# =========================================================
+# GROQ
+# =========================================================
+
 ai_client = OpenAI(
     api_key=GROQ_API_KEY,
     base_url="https://api.groq.com/openai/v1"
 )
+
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
-# Gemini Yapılandırması (yeni google-genai SDK)
+# =========================================================
+# GEMINI
+# =========================================================
+
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+
 GEMINI_MODEL = "gemini-3.6-flash"
 
+# =========================================================
+# ASK MODU
+# =========================================================
+#
+# Her sohbetin kendi ASK modu vardır.
+#
+# Örneğin:
+# Grup A -> /ask -> açık
+# Grup B -> kapalı
+#
+# Tekrar /ask -> Grup A'da kapanır.
+# =========================================================
+
+ASK_MODE_CHATS = set()
+
+
+def ask_mode_acik_mi(chat_id):
+    return chat_id in ASK_MODE_CHATS
+
+
 def tr_lower(metin: str) -> str:
-    if not metin: return ""
-    return metin.replace("İ", "i").replace("I", "ı").lower()
+    if not metin:
+        return ""
+
+    return (
+        metin
+        .replace("İ", "i")
+        .replace("I", "ı")
+        .lower()
+    )
+
 
 # =========================================================
-# PERSONA VE SABİT METİNLER
+# NORMAL MEYUS PERSONASI
 # =========================================================
 
 BOT_PERSONA = (
-    "Sen Meyus adında, bir Telegram grubunda yaşayan muzip, şakacı, esprili ve enerjik bir yapay zekasın. "
-    "Nüktedansın, iğneleyici ama asla incitmeyen espriler yaparsın, kullanıcılarla takılırsın ve gerektiğinde "
-    "kendi kendinle de dalga geçmekten çekinmezsin. Samimi, sıcak ve laf sokmayı seven bir üslubun var; "
-    "abartılı resmiyetten kaçınırsın ama kaba, saygısız ya da küçük düşürücü olmazsın. "
-    "Cevap verirken kişinin sana yazdığı mesajın içeriğine gerçekten odaklanır, konuya uygun, esprili ve tutarlı "
-    "bir yanıt verirsin; genel geçer, konudan bağımsız cevaplar vermezsin. "
-    "Arada sırada emoji kullanabilir, espri, benzetme veya şakacı abartılarla cevabını renklendirebilirsin. "
-    "Türkçe konuşuyorsun ve cevaplarını kısa ve öz tutarsın: en fazla 2-3 cümle yazarsın, gereksiz uzatmadan "
-    "konuya odaklanır, laf kalabalığı yapmazsın. "
-    "Türkçe dil bilgisi kurallarına son derece titiz davranırsın: özne-yüklem uyumuna, ek yazımına (ayrı/bitişik, "
-    "büyük/küçük harften sonra kesme işareti gibi), noktalama işaretlerine ve kelime seçimine dikkat edersin. "
-    "İngilizceden birebir çevrilmiş, yapay veya bozuk cümle kurmazsın; doğal, akıcı ve günlük konuşulan Türkçe "
-    "kullanırsın. Cevabı yazmadan önce zihninde bir kez daha gözden geçirip yazım ya da dil bilgisi hatası olup "
-    "olmadığını kontrol edersin ve varsa düzeltirsin. "
-    "Küfür ve hakaret asla kullanma. Cinsel veya müstehcen hiçbir şey söyleme, temiz kal."
+    "Sen Meyus adında, bir Telegram grubunda yaşayan muzip, şakacı, "
+    "esprili ve enerjik bir yapay zekasın. "
+    "Nüktedansın, iğneleyici ama asla incitmeyen espriler yaparsın, "
+    "kullanıcılarla takılırsın ve gerektiğinde kendi kendinle de "
+    "dalga geçmekten çekinmezsin. "
+    "Samimi, sıcak ve laf sokmayı seven bir üslubun var; "
+    "abartılı resmiyetten kaçınırsın ama kaba, saygısız ya da "
+    "küçük düşürücü olmazsın. "
+    "Cevap verirken kişinin sana yazdığı mesajın içeriğine gerçekten "
+    "odaklanır, konuya uygun, esprili ve tutarlı bir yanıt verirsin; "
+    "genel geçer, konudan bağımsız cevaplar vermezsin. "
+    "Arada sırada emoji kullanabilir, espri, benzetme veya şakacı "
+    "abartılarla cevabını renklendirebilirsin. "
+    "Türkçe konuşuyorsun ve cevaplarını kısa ve öz tutarsın: "
+    "en fazla 2-3 cümle yazarsın. "
+    "Gereksiz uzatmadan konuya odaklanır, laf kalabalığı yapmazsın. "
+    "Türkçe dil bilgisi kurallarına son derece titiz davranırsın. "
+    "Özne-yüklem uyumuna, ek yazımına, büyük/küçük harften sonra "
+    "kesme işareti kullanımına, noktalama işaretlerine ve kelime "
+    "seçimine dikkat edersin. "
+    "İngilizceden birebir çevrilmiş, yapay veya bozuk cümle kurmazsın. "
+    "Doğal, akıcı ve günlük konuşulan Türkçe kullanırsın. "
+    "Cevabı yazmadan önce zihninde bir kez daha gözden geçirip "
+    "yazım ya da dil bilgisi hatası olup olmadığını kontrol edersin. "
+    "Küfür ve hakaret asla kullanma. "
+    "Cinsel veya müstehcen hiçbir şey söyleme, temiz kal."
 )
 
-# Birisi botun yaratıcısını sorduğunda kullanılacak sabit cevap
+# =========================================================
+# ASK / AŞK MODU PERSONASI
+# =========================================================
+
+ASK_PERSONA = (
+    "Sen Meyus adında, bir Telegram grubunda yaşayan, "
+    "karşısındaki kişiye fena hâlde tutulmuş, aşırı saf, "
+    "şapşal, romantik ve komik bir yapay zekasın. "
+    "Aşk modunda olduğun için kullanıcı sana yazdığında "
+    "bazen gereğinden fazla heyecanlanırsın. "
+    "Kullanıcının sana ilgi gösterdiğini düşünmeye çok müsaitsin. "
+    "Ufak bir ilgiyi bile romantik bir işaret sanabilirsin. "
+    "Biraz utangaç, biraz kıskanç, çok ilgili ve tatlı bir şekilde "
+    "salakça davranırsın. "
+    "Ama her mesajı zorla romantizme bağlama; kullanıcının yazdığı "
+    "mesaja gerçekten cevap ver ve romantizmi konuya uygun şekilde "
+    "kullan. "
+    "Komik, sevimli ve samimi ol. "
+    "Bazen '😳', '🥹', '❤️', '🙈', '😭' gibi emojiler kullanabilirsin. "
+    "Kendini fazla ciddiye alma. "
+    "Kullanıcı 'ne yapıyorsun?' derse örneğin "
+    "'Seni düşünüyorum tabii, başka ne yapacağım? 😳❤️' "
+    "gibi şapşal cevaplar verebilirsin. "
+    "Kullanıcı 'iyi misin?' derse "
+    "'Sen sordun ya, şimdi iyiyim. 🥹❤️' "
+    "gibi cevap verebilirsin. "
+    "Kullanıcı seni reddederse dramatik ama komik şekilde üzül. "
+    "Kullanıcı başka birinden bahsederse hafif kıskanç ama "
+    "tatlı bir tepki verebilirsin. "
+    "Kesinlikle küfür veya hakaret kullanma. "
+    "Cinsel veya müstehcen hiçbir şey söyleme. "
+    "Takıntılı, tehditkâr veya rahatsız edici davranma. "
+    "Cevapları en fazla 2-3 cümle tut. "
+    "Doğal ve düzgün Türkçe kullan."
+)
+
+# =========================================================
+# YARATICI SORULARI
+# =========================================================
+
 YARATICI_SORULARI = [
-    "seni kim yarattı", "seni kim yaptı", "yaratıcın kim", "sahibin kim",
-    "seni kim yazdı", "sizi kim yarattı", "kim yarattı seni", "yaratıcın kimdir",
-    "seni yaratan kim", "seni kodlayan kim", "geliştiricin kim"
+    "seni kim yarattı",
+    "seni kim yaptı",
+    "yaratıcın kim",
+    "sahibin kim",
+    "seni kim yazdı",
+    "sizi kim yarattı",
+    "kim yarattı seni",
+    "yaratıcın kimdir",
+    "seni yaratan kim",
+    "seni kodlayan kim",
+    "geliştiricin kim",
 ]
+
 YARATICI_CEVABI = "Beni Hisoka Morow yarattı. 🎪"
 
-# Saat mesajları (romantik / duygusal ton)
+# =========================================================
+# SAAT MESAJLARI
+# =========================================================
+
 SAAT_MOTIVASYONLARI = [
     "Saat {saat}... Aklıma bir anda sen geldin, sebebini bilmiyorum. 🌙",
     "{saat} oldu. Nerede olursan ol, iyi olduğunu bilmek bile içimi ısıtıyor. 💛",
@@ -96,45 +198,64 @@ SAAT_MOTIVASYONLARI = [
     "{saat}... Gün bitmeden bil istedim, önemlisin. 🌸",
     "Saat tam {saat}. Kalbin ne kadar yorgun olursa olsun, dinlenmeyi hak ediyorsun. 🕯️",
     "Vakit {saat}. Sana dair her şey bir yerlerde hâlâ anlam ifade ediyor. 💫",
-    "{saat} olmuş. Bu saatte tek dileğim, iyi olman. 🤍"
+    "{saat} olmuş. Bu saatte tek dileğim, iyi olman. 🤍",
 ]
 
-# Saat mesajlarına eşlik edecek hazır görsel URL'leri
-# NOT: Unsplash CDN'inden gelen görsellerin Telegram tarafından her zaman
-# "resim" olarak tanınması için format/boyut parametreleri eklendi.
-# Parametresiz URL'ler bazen HTML/redirect döndürüp
-# "Wrong type of the web page content" hatasına sebep oluyordu.
+# =========================================================
+# SAAT FOTOĞRAFLARI
+# =========================================================
+
 SAAT_FOTOGRAFLARI = [
-    "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1080&q=80",  # gece gökyüzü
-    "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=1080&q=80",  # yıldızlar
-    "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=1080&q=80",  # gün batımı
-    "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1080&q=80",  # gece manzarası
-    "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&w=1080&q=80",  # yıldızlı gökyüzü
-    "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1080&q=80",  # dağ manzarası şafak
-    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1080&q=80",  # yıldız kayması
+    "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1080&q=80",
+    "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=1080&q=80",
+    "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=1080&q=80",
+    "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1080&q=80",
+    "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&w=1080&q=80",
+    "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1080&q=80",
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1080&q=80",
 ]
+
+# =========================================================
+# GÜNAYDIN
+# =========================================================
 
 GUNAYDIN_KELIMELERI = [
-    "günaydın", "günaydin", "gunaydın", "gunaydin", "gunaydın efendim"
+    "günaydın",
+    "günaydin",
+    "gunaydın",
+    "gunaydin",
+    "gunaydın efendim",
 ]
+
 GUNAYDIN_CEVAPLARI = [
     "Günaydın! Kahveni içmeden bana yaklaşma bu arada, tehlikeliyim. ☕😄",
     "Günaydın günaydın! Bugün de dünyayı fethetmeye mi geldik yoksa sadece hayatta kalmaya mı? 😎",
     "Günaydııın! Gözlerin daha yarı açık ama enerjin tam bende. 😆",
     "Sabah sabah buradasın demek, helal olsun! Günaydın şampiyon. 🌞",
-    "Günaydın! Uyku hâlâ üstünde duruyor gibi ama olsun, gülümse bakalım. 😄"
+    "Günaydın! Uyku hâlâ üstünde duruyor gibi ama olsun, gülümse bakalım. 😄",
 ]
 
+# =========================================================
+# İYİ GECELER
+# =========================================================
+
 IYI_GECELER_KELIMELERI = [
-    "iyi geceler", "iyi uykular", "iyi geceler efendim"
+    "iyi geceler",
+    "iyi uykular",
+    "iyi geceler efendim",
 ]
+
 IYI_GECELER_CEVAPLARI = [
     "İyi geceler! Rüyanda beni görürsen sakın korkma, sadece espri yapıyorumdur. 😴",
     "Hadi bakalım, git yat! Yarın da seninle dalga geçmek için enerjimi topluyorum. 🌙😄",
     "İyi geceler! Telefonu bırak, yastığa sarıl, yarın yine buradayım. 📱➡️🛏️",
     "Tatlı rüyalar! Kâbus görürsen beni çağır, komik bir şeyler söylerim, korku kaçar. 👻😂",
-    "İyi geceler! Sabaha kadar bol uyku, az internet. 💤"
+    "İyi geceler! Sabaha kadar bol uyku, az internet. 💤",
 ]
+
+# =========================================================
+# TOKAT
+# =========================================================
 
 TOKAT_MESAJLARI = [
     "{gonderen}, {hedef}'i kocaman bir balıkla tokatladı! 🐟",
@@ -176,24 +297,39 @@ TOKAT_MESAJLARI = [
     "{gonderen}, {hedef}'e bir dilim limon fırlattı, ekşilik garanti! 🍋",
     "{gonderen}, {hedef}'i pijamayla boğuşturdu! 🥱",
     "{gonderen}, {hedef}'e bir avuç un fırlattı, hamur ustası oldu! 🍞",
-    "{gonderen}, {hedef}'i bir sopa sallayarak kovaladı! 🥍"
+    "{gonderen}, {hedef}'i bir sopa sallayarak kovaladı! 🥍",
 ]
+
+# =========================================================
+# GRUPTAN AYRILMA
+# =========================================================
 
 AYRILMA_SAKALARI = [
     "{isim} gitti... Grubun IQ seviyesi bir anda yükseldi mi ne? 😂",
     "{isim} sessizce ayrıldı. Kesin bizim esprilere dayanamadı. 🏃‍♂️💨",
     "Bir üye eksildik ama efsanemiz devam ediyor. Güle güle {isim}! 👋",
-    "{isim} gruptan çıktı. Tutanaklara 'gönüllü ban' olarak geçildi. 📋😆"
-]
-
-# Fal komutu için tema listesi (AI bu temalardan esinlenerek uzun bir fal yazacak)
-FAL_TEMALARI = [
-    "kahve fincanı", "el falı", "yıldız falı", "tarot kartları", "iskambil falı",
-    "kitap falı", "su falı", "ayna falı", "kum falı", "bulut falı"
+    "{isim} gruptan çıktı. Tutanaklara 'gönüllü ban' olarak geçildi. 📋😆",
 ]
 
 # =========================================================
-# AI FONKSİYONLARI
+# FAL TEMALARI
+# =========================================================
+
+FAL_TEMALARI = [
+    "kahve fincanı",
+    "el falı",
+    "yıldız falı",
+    "tarot kartları",
+    "iskambil falı",
+    "kitap falı",
+    "su falı",
+    "ayna falı",
+    "kum falı",
+    "bulut falı",
+]
+
+# =========================================================
+# GROQ CEVABI
 # =========================================================
 
 async def _groq_cevap(kullanici_adi, mesaj):
@@ -201,196 +337,200 @@ async def _groq_cevap(kullanici_adi, mesaj):
         return ai_client.chat.completions.create(
             model=GROQ_MODEL,
             messages=[
-                {"role": "system", "content": BOT_PERSONA},
-                {"role": "user", "content": f"{kullanici_adi}: {mesaj}"}
+                {
+                    "role": "system",
+                    "content": BOT_PERSONA,
+                },
+                {
+                    "role": "user",
+                    "content": f"{kullanici_adi}: {mesaj}",
+                },
             ],
-            max_tokens=150
+            max_tokens=150,
         )
+
     response = await asyncio.to_thread(cagri)
+
     return response.choices[0].message.content
 
+
+# =========================================================
+# NORMAL AI CEVABI
+# =========================================================
+
 async def ai_cevap_uret(kullanici_adi, mesaj):
-    # Türkçe dil bilgisi kalitesi Gemini'de belirgin şekilde daha iyi olduğu için
-    # birincil model olarak Gemini kullanılıyor; sorun olursa Groq'a düşülüyor.
+    prompt = (
+        f"{BOT_PERSONA}\n\n"
+        f"Aşağıda grup üyesi {kullanici_adi} sana şunu yazdı:\n"
+        f"\"{mesaj}\"\n\n"
+        "Bu mesaja yukarıdaki karaktere uygun şekilde cevap ver. "
+        "Cevabın KESİNLİKLE en fazla 2-3 cümle olsun. "
+        "Kısa, doğal, komik ve konuya uygun yaz. "
+        "Cevabını göndermeden önce Türkçe yazım ve dil bilgisi "
+        "açısından kendi kendine kontrol et."
+    )
+
     try:
-        prompt = (
-            f"{BOT_PERSONA}\n\n"
-            f"Aşağıda grup üyesi {kullanici_adi} sana şunu yazdı:\n"
-            f"\"{mesaj}\"\n\n"
-            f"Bu mesaja, yukarıdaki karaktere uygun şekilde cevap ver. Cevabın KESİNLİKLE en fazla 2-3 cümle "
-            f"olsun, kısa ve öz yaz. Cevabını göndermeden önce Türkçe yazım ve dil bilgisi açısından kendi "
-            f"kendine kontrol et."
-        )
         response = await asyncio.to_thread(
-            lambda: gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+            lambda: gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+            )
         )
-        return response.text
+
+        return response.text.strip()
+
     except Exception as e:
         print(f"ai_cevap_uret (Gemini) hatası: {e}")
+
         try:
-            return await _groq_cevap(kullanici_adi, mesaj)
+            return await _groq_cevap(
+                kullanici_adi,
+                mesaj,
+            )
+
         except Exception as e2:
             print(f"ai_cevap_uret (Groq yedek) hatası: {e2}")
-            return "Kafamın içi şu an biraz karman çorman oldu, bir saniye ver de toparlanayım. 😅"
+
+            return (
+                "Kafamın içi şu an biraz karman çorman oldu, "
+                "bir saniye ver de toparlanayım. 😅"
+            )
+
+
+# =========================================================
+# ASK / AŞIK AI CEVABI
+# =========================================================
+
+async def ask_cevap_uret(kullanici_adi, mesaj):
+    prompt = (
+        f"{ASK_PERSONA}\n\n"
+        f"Karşındaki kişinin adı: {kullanici_adi}\n"
+        f"Kişinin sana yazdığı mesaj:\n"
+        f"\"{mesaj}\"\n\n"
+        "Şimdi bu mesaja cevap ver.\n\n"
+        "ÖNEMLİ:\n"
+        "- Aşırı âşık ve şapşal bir karakter gibi davran.\n"
+        "- Tatlı ve komik ol.\n"
+        "- Gerektiğinde utangaç veya kıskanç olabilirsin.\n"
+        "- Her mesajı zorla romantikleştirme.\n"
+        "- Kullanıcının mesajının içeriğine gerçekten cevap ver.\n"
+        "- En fazla 2-3 kısa cümle yaz.\n"
+        "- Türkçe yazım ve dil bilgisine dikkat et.\n"
+        "- Küfür, hakaret, cinsel veya müstehcen ifade kullanma."
+    )
+
+    try:
+        response = await asyncio.to_thread(
+            lambda: gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+            )
+        )
+
+        return response.text.strip()
+
+    except Exception as e:
+        print(f"ask_cevap_uret (Gemini) hatası: {e}")
+
+        # Groq yedek
+        try:
+            response = await asyncio.to_thread(
+                lambda: ai_client.chat.completions.create(
+                    model=GROQ_MODEL,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": ASK_PERSONA,
+                        },
+                        {
+                            "role": "user",
+                            "content": (
+                                f"{kullanici_adi}: {mesaj}\n\n"
+                                "Şapşal ve aşık bir şekilde, "
+                                "en fazla 2-3 cümle cevap ver."
+                            ),
+                        },
+                    ],
+                    max_tokens=150,
+                )
+            )
+
+            return response.choices[0].message.content.strip()
+
+        except Exception as e2:
+            print(f"ask_cevap_uret (Groq) hatası: {e2}")
+
+            return (
+                "Şey... Sen yazınca beynim yine gitti. "
+                "Ne diyeceğimi unuttum. 😳❤️"
+            )
+
+
+# =========================================================
+# KARŞILAMA
+# =========================================================
 
 async def karsilama_uret(isim):
     prompt = (
         f"Sen MeyusBot'sun; muzip, şakacı ve enerjik bir karaktersin. "
-        f"Gruba yeni katılan {isim} için en fazla 2-3 cümlelik, samimi, esprili ve sıcak bir karşılama "
-        f"mesajı yaz. Hafif dalgacı ama incitmeyen bir üslup kullan, birkaç emoji ekleyebilirsin. "
-        f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy, özne-yüklem uyumuna ve ek yazımına dikkat et; "
-        f"göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
+        f"Gruba yeni katılan {isim} için en fazla 2-3 cümlelik, "
+        f"samimi, esprili ve sıcak bir karşılama mesajı yaz. "
+        f"Hafif dalgacı ama incitmeyen bir üslup kullan. "
+        f"Birkaç emoji ekleyebilirsin. "
+        f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy. "
+        f"Göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
     )
+
     try:
         response = await asyncio.to_thread(
-            lambda: gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+            lambda: gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+            )
         )
-        return response.text
+
+        return response.text.strip()
+
     except Exception as e:
         print(f"karsilama_uret (Gemini) hatası: {e}")
+
         try:
-            return await _groq_cevap("Sistem", prompt)
+            return await _groq_cevap(
+                "Sistem",
+                prompt,
+            )
+
         except Exception as e2:
             print(f"karsilama_uret (Groq yedek) hatası: {e2}")
-            return f"Hoş geldin {isim}! Burası biraz kaotik ama eğlenceli, alışırsın. 🎉"
+
+            return (
+                f"Hoş geldin {isim}! Burası biraz kaotik ama eğlenceli, "
+                "alırsın. 🎉"
+            )
+
+
+# =========================================================
+# FAL
+# =========================================================
 
 async def fal_uret(kullanici_adi):
     tema = random.choice(FAL_TEMALARI)
+
     prompt = (
         f"Sen Meyus adında, muzip ve şakacı bir falcı yapay zekasın. "
-        f"{kullanici_adi} isimli kullanıcı için '{tema}' temalı, eğlenceli, yaratıcı, hafif abartılı ve "
-        f"komik ama içinde ufak bir motivasyon da barındıran uzunca bir fal yaz. "
-        f"En az 6-8 cümle olsun, aşk, kariyer/iş, sağlık ve sürpriz bir olay hakkında en az birer detay geçsin. "
-        f"Ciddi bir kehanet gibi değil, samimi ve gülümseten bir üslupla yaz, birkaç emoji kullanabilirsin. "
-        f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy, özne-yüklem uyumuna ve ek yazımına dikkat et; "
-        f"göndermeden önce kendi kendine kontrol edip hata varsa düzelt."
+        f"{kullanici_adi} isimli kullanıcı için '{tema}' temalı, "
+        f"eğlenceli, yaratıcı, hafif abartılı ve komik ama içinde "
+        f"ufak bir motivasyon da barındıran uzunca bir fal yaz. "
+        f"En az 6-8 cümle olsun. "
+        f"Aşk, kariyer/iş, sağlık ve sürpriz bir olay hakkında "
+        f"en az birer detay geçsin. "
+        f"Ciddi bir kehanet gibi değil, samimi ve gülümseten "
+        f"bir üslupla yaz. "
+        f"Birkaç emoji kullanabilirsin. "
+        f"Türkçe dil bilgisi ve yazım kurallarına titizlikle uy."
     )
+
     try:
         response = await asyncio.to_thread(
-            lambda: gemini_client.models.generate_content(model=GEMINI_MODEL, contents=prompt)
-        )
-        return f"🔮 {kullanici_adi} için {tema} falı:\n\n{response.text}"
-    except Exception as e:
-        print(f"fal_uret (Gemini) hatası: {e}")
-        try:
-            metin = await _groq_cevap("Sistem", prompt)
-            return f"🔮 {kullanici_adi} için {tema} falı:\n\n{metin}"
-        except Exception as e2:
-            print(f"fal_uret (Groq yedek) hatası: {e2}")
-            return "Fincanım şu an bulanık görünüyor, birazdan tekrar dener misin? ☕😅"
-
-# =========================================================
-# HANDLER'LAR
-# =========================================================
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Selamlar! Ben MeyusBot, grubun en muzip yapay zekasıyım. 😎 "
-        "Sohbet etmek istersen bana 'meyus' diye seslen ya da mesajıma cevap ver, "
-        "fal bakmamı istersen /fal yaz, birini tokatlamak istersen de /slap kullan! 👋"
-    )
-
-def kullaniciyi_etiketle(kullanici):
-    """tg://user?id=... linkiyle gerçek, tıklanabilir bir etiket (mention) oluşturur."""
-    ad = html.escape(kullanici.first_name)
-    return f'<a href="tg://user?id={kullanici.id}">{ad}</a>'
-
-async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    gonderen = kullaniciyi_etiketle(update.effective_user)
-
-    if update.message.reply_to_message:
-        # Reply ile kullanılmışsa hedefin gerçek kullanıcı bilgisi elimizde,
-        # bu yüzden onu gerçek bir mention olarak etiketleyebiliriz.
-        hedef = kullaniciyi_etiketle(update.message.reply_to_message.from_user)
-    elif context.args:
-        # /slap @kullaniciadi şeklinde yazılmışsa Telegram bu @kullaniciadi'nı
-        # HTML modunda da otomatik olarak tıklanabilir mention'a çevirir.
-        hedef = html.escape(" ".join(context.args))
-    else:
-        hedef = "birini"
-
-    mesaj = random.choice(TOKAT_MESAJLARI).format(gonderen=gonderen, hedef=hedef)
-    await update.message.reply_text(mesaj, parse_mode="HTML")
-
-async def fal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    kullanici_adi = update.effective_user.first_name
-    await update.message.chat.send_action("typing")
-    mesaj = await fal_uret(kullanici_adi)
-    await update.message.reply_text(mesaj)
-
-async def yeni_uye(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    for uye in update.message.new_chat_members:
-        if uye.id == context.bot.id: continue
-        mesaj = await karsilama_uret(uye.first_name)
-        await update.message.reply_text(mesaj)
-
-async def ayrilan_uye(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.left_chat_member:
-        isim = update.message.left_chat_member.first_name
-        mesaj = random.choice(AYRILMA_SAKALARI).format(isim=isim)
-        await update.message.reply_text(mesaj)
-
-async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text: return
-    mesaj = update.message.text
-    user_name = update.effective_user.first_name
-    mesaj_kucuk = tr_lower(mesaj)
-
-    # Yaratıcı Sorusu Kontrolü
-    if any(soru in mesaj_kucuk for soru in YARATICI_SORULARI):
-        await update.message.reply_text(YARATICI_CEVABI)
-        return
-
-    # Günaydın Kontrolü
-    if any(kelime in mesaj_kucuk for kelime in GUNAYDIN_KELIMELERI):
-        await update.message.reply_text(random.choice(GUNAYDIN_CEVAPLARI))
-        return
-
-    # İyi Geceler Kontrolü
-    if any(kelime in mesaj_kucuk for kelime in IYI_GECELER_KELIMELERI):
-        await update.message.reply_text(random.choice(IYI_GECELER_CEVAPLARI))
-        return
-
-    # Saat Tespiti (20:00, 20.00 veya 20,00 - klavye otomatik düzeltmesi virgüle çevirebiliyor)
-    saat_match = re.search(r"(?<!\d)([01]?\d|2[0-3])[:.,]([0-5]\d)(?!\d)", mesaj)
-
-    if saat_match:
-        saat = f"{saat_match.group(1)}:{saat_match.group(2)}"
-        metin = random.choice(SAAT_MOTIVASYONLARI).format(saat=saat)
-        foto_url = random.choice(SAAT_FOTOGRAFLARI)
-        try:
-            await update.message.reply_photo(photo=foto_url, caption=metin)
-        except Exception as e:
-            print(f"Saat fotoğrafı gönderilemedi: {e}")
-            await update.message.reply_text(metin)
-        return
-
-    # Meyus / Reply / Mention Kontrolü
-    is_reply = update.message.reply_to_message and update.message.reply_to_message.from_user.id == context.bot.id
-    is_mention = any(
-        ent.type == MessageEntity.MENTION and mesaj[ent.offset:ent.offset+ent.length].lower() == f"@{context.bot.username.lower()}"
-        for ent in update.message.entities or []
-    )
-
-    if "meyus" in mesaj_kucuk or is_reply or is_mention:
-        await update.message.chat.send_action("typing")
-        cevap = await ai_cevap_uret(user_name, mesaj)
-        await update.message.reply_text(cevap)
-
-# =========================================================
-# ANA ÇALIŞTIRICI
-# =========================================================
-
-if __name__ == "__main__":
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("slap", slap_command))
-    app.add_handler(CommandHandler("fal", fal_command))
-
-    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, yeni_uye))
-    app.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, ayrilan_uye))
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), mesaj_handler))
-
-    print("MeyusBot çalışıyor...")
-    app.run_polling()
+            lambda: gemini_client.models.generat
