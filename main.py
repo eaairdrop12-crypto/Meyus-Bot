@@ -261,6 +261,21 @@ TOKAT_MESAJLARI = [
     "{gonderen}, {hedef}'i bir sopa sallayarak kovaladı! 🥍"
 ]
 
+EROS_MESAJLARI = [
+    "💘 Aşk perisi Meyus bugün {kisi1} ile {kisi2}'yi seçti! İkinizin arasında görünmez bir bağ var, kader mi bu yoksa tesadüf mü? 🌹",
+    "Cupid bugün nişanı şaşırmadı: {kisi1} ve {kisi2}, yıldızlar sizin için hizalandı gibi görünüyor! ✨💞",
+    "{kisi1} ile {kisi2}... İsimleri yan yana bile güzel duruyor, kalpler bir anlığına hızlandı! 💓",
+    "Grubun aşk falı: {kisi1} ve {kisi2} bugün eşleşti! Belki kader, belki şans, ama kesinlikle tatlı bir ikili. 🌸💘",
+    "{kisi1}, {kisi2}'ye bir baksın derim... Meyus'un kalbi bu eşleşmeye çoktan onay verdi! 😌💗",
+    "Aşk oku bugün {kisi1} ile {kisi2} arasında bir yerlerde kayboldu, umarım ikisini de bulur! 🏹💕",
+    "{kisi1} ve {kisi2}, evrende bu ikilinin bir araya gelmesi tesadüf olamaz! Kader kapıyı çalıyor. 🚪💘",
+    "Meyus'un aşk radarı bip bip çaldı: {kisi1} ile {kisi2} arasında güzel bir enerji var! 🌟💞",
+    "{kisi1}, {kisi2}'yle aynı grupta olmak bile şans! Kalpler tesadüfen mi çarpıyor acaba? 💓😳",
+    "Bugünün romantik eşleşmesi: {kisi1} & {kisi2}! Umarım biri diğerine kahve ısmarlar. ☕💘",
+    "{kisi1} ile {kisi2} arasında kimyayı hissediyorum, belki de fazla dizi izliyorumdur ama olsun! 🎬💕",
+    "Aşk perisi bugün cömert davrandı: {kisi1} ve {kisi2}, tebrikler, kader sizi seçti! 🌹✨"
+]
+
 AYRILMA_SAKALARI = [
     "{isim} gitti... Grubun IQ seviyesi bir anda yükseldi mi ne? 😂",
     "{isim} sessizce ayrıldı. Kesin bizim esprilere dayanamadı. 🏃‍♂️💨",
@@ -381,13 +396,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Selamlar! Ben MeyusBot, grubun en muzip yapay zekasıyım. 😎 "
         "Sohbet etmek istersen bana 'meyus' diye seslen ya da mesajıma cevap ver, "
-        "fal bakmamı istersen /fal yaz, birini tokatlamak istersen de /slap kullan! 👋"
+        "fal bakmamı istersen /fal yaz, birini tokatlamak istersen /slap, aşk perisi gibi "
+        "iki kişiyi eşleştirmemi istersen de /eros kullan! 👋"
     )
 
 def kullaniciyi_etiketle(kullanici):
     """tg://user?id=... linkiyle gerçek, tıklanabilir bir etiket (mention) oluşturur."""
     ad = html.escape(kullanici.first_name)
     return f'<a href="tg://user?id={kullanici.id}">{ad}</a>'
+
+def kullanici_kaydet(context: ContextTypes.DEFAULT_TYPE, kullanici):
+    """/eros gibi komutlarda rastgele üye seçebilmek için, sohbette görülen
+    kullanıcıları chat_data içinde biriktirir (bellek içi, basit bir önbellek)."""
+    if not kullanici or kullanici.is_bot:
+        return
+    context.chat_data.setdefault("bilinen_kullanicilar", {})[kullanici.id] = kullanici
 
 async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gonderen = kullaniciyi_etiketle(update.effective_user)
@@ -422,16 +445,44 @@ async def ask_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def fal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    kullanici_kaydet(context, update.effective_user)
     kullanici_adi = update.effective_user.first_name
     await update.message.chat.send_action("typing")
     mesaj = await fal_uret(kullanici_adi)
     await update.message.reply_text(mesaj)
 
+async def eros_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Bot Telegram grubunun tüm üye listesine erişemediği için, o ana kadar
+    # sohbette görülüp kullanici_kaydet ile biriktirilen kullanıcılar arasından
+    # rastgele iki kişi seçiyoruz.
+    kullanici_kaydet(context, update.effective_user)
+    bilinenler = context.chat_data.get("bilinen_kullanicilar", {})
+    adaylar = [u for uid, u in bilinenler.items() if uid != context.bot.id]
+
+    if len(adaylar) < 2:
+        await update.message.reply_text(
+            "Aşk oklarımı fırlatacak yeterince kişi tanımıyorum daha, biraz sohbet edilsin, "
+            "sonra tekrar dene! 💘"
+        )
+        return
+
+    kisi1, kisi2 = random.sample(adaylar, 2)
+    etiket1 = kullaniciyi_etiketle(kisi1)
+    etiket2 = kullaniciyi_etiketle(kisi2)
+    mesaj = random.choice(EROS_MESAJLARI).format(kisi1=etiket1, kisi2=etiket2)
+    await update.message.reply_text(mesaj, parse_mode="HTML")
+
 async def yeni_uye(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for uye in update.message.new_chat_members:
         if uye.id == context.bot.id: continue
+        kullanici_kaydet(context, uye)
+        etiket = kullaniciyi_etiketle(uye)
+        kullanici_adi = f"@{uye.username}" if uye.username else "kullanıcı adı yok"
         mesaj = await karsilama_uret(uye.first_name)
-        await update.message.reply_text(mesaj)
+        await update.message.reply_text(
+            f"{etiket} ({kullanici_adi}) gruba katıldı!\n\n{mesaj}",
+            parse_mode="HTML"
+        )
 
 async def ayrilan_uye(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.left_chat_member:
@@ -441,6 +492,7 @@ async def ayrilan_uye(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message or not update.message.text: return
+    kullanici_kaydet(context, update.effective_user)
     mesaj = update.message.text
     user_name = update.effective_user.first_name
     mesaj_kucuk = tr_lower(mesaj)
@@ -514,6 +566,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("slap", slap_command))
     app.add_handler(CommandHandler("fal", fal_command))
     app.add_handler(CommandHandler("ask", ask_command))
+    app.add_handler(CommandHandler("eros", eros_command))
 
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, yeni_uye))
     app.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, ayrilan_uye))
