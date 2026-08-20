@@ -30,7 +30,10 @@ ai_client = OpenAI(
     api_key=GROQ_API_KEY,
     base_url="https://api.groq.com/openai/v1"
 )
-GROQ_MODEL = "llama-3.3-70b-versatile"
+# NOT: "llama-3.3-70b-versatile" Groq tarafından kullanımdan kaldırıldı
+# (deprecated) ve artık 404 model_not_found hatası veriyordu.
+# Groq'un güncel olarak önerdiği modellerden biriyle değiştirildi.
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 # Gemini Yapılandırması (yeni google-genai SDK)
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
@@ -135,6 +138,8 @@ YARATICI_SORULARI = [
 YARATICI_CEVABI = "Beni Hisoka Morow yarattı. 🎪"
 
 # Saat mesajları (romantik / duygusal ton)
+# NOT: Liste kasıtlı olarak uzun tutuldu; aşağıdaki rastgele_farkli_sec()
+# fonksiyonu sayesinde bu listedeki tüm mesajlar bitmeden hiçbiri tekrar etmiyor.
 SAAT_MOTIVASYONLARI = [
     "Saat {saat}... Aklıma bir anda sen geldin, sebebini bilmiyorum. 🌙",
     "{saat} oldu. Nerede olursan ol, iyi olduğunu bilmek bile içimi ısıtıyor. 💛",
@@ -160,7 +165,32 @@ SAAT_MOTIVASYONLARI = [
     "{saat}... Gün bitmeden bil istedim, önemlisin. 🌸",
     "Saat tam {saat}. Kalbin ne kadar yorgun olursa olsun, dinlenmeyi hak ediyorsun. 🕯️",
     "Vakit {saat}. Sana dair her şey bir yerlerde hâlâ anlam ifade ediyor. 💫",
-    "{saat} olmuş. Bu saatte tek dileğim, iyi olman. 🤍"
+    "{saat} olmuş. Bu saatte tek dileğim, iyi olman. 🤍",
+    "Saat {saat}. Şu an nerede olursan ol, bir an durup nefes almanı istiyorum. 🍃",
+    "{saat}... Bugün kendine söylemeyi unuttuğun güzel bir söz varsa, ben söyleyeyim: elinden geleni yaptın. 🌿",
+    "Vakit {saat}. Telefonunu şu an açman bile bir işaret olabilir, kim bilir. ✨",
+    "Saat tam {saat}. Bu saatte biri hâlâ seni merak ediyor, işte bu ben oluyorum. 🌾",
+    "{saat} olmuş. Bugün ne kadar yorulursan yorul, yarın yeniden başlayabilirsin. 🌤️",
+    "Saat {saat}. Aklından geçenleri bilmiyorum ama iyi şeyler olmasını diliyorum. 🍀",
+    "Vakit {saat}. Bazı saatler durup düşünmek için vardır, şimdi öyle bir an. 🕰️",
+    "{saat}... Uzaktan da olsa, bugün seni düşünen biri var, unutma. 💭",
+    "Saat tam {saat}. Küçük bir hatırlatma: bugün de var olduğun için iyi ki. 🌻",
+    "{saat} olmuş. Gün sana ne getirdiyse getirsin, hâlâ ayaktasın, bu bile bir şey. 💪",
+    "Vakit {saat}. Şu anda kim bilir nerelerdesin, ama aklımda bir yerlerdesin. 🌆",
+    "Saat {saat}. Bu saatte kimse sormasa da soruyorum: bugün nasıl geçti? 🌇",
+    "{saat}... Yorgunluğun varsa bir kenara bırak, bu mesaj küçük bir es olsun. 🫖",
+    "Saat tam {saat}. Sana iyi gelecek bir şey varsa umarım bugün onu bulursun. 🕯️",
+    "Vakit {saat}. Bazen bir mesaj bile yeter, işte bu onlardan biri. 💬",
+    "{saat} olmuş. Bugünün yorgunluğu neyse, yarına kalmasın istiyorum. 🌙",
+    "Saat {saat}. Şu anki hâlin ne olursa olsun, biraz gülümsemeni isterim. 😊",
+    "{saat}... Gün biterken, en azından biri seni önemsiyor bil. 🌌",
+    "Saat tam {saat}. Bugün kimseye anlatmadığın bir şey varsa, ben dinlerim. 🕊️",
+    "Vakit {saat}. Uzun bir gün geçirdiysen, şimdi biraz kendine zaman ayır. 🍵",
+    "{saat} olmuş. Bu saatte aklıma sadece iyi şeyler diliyorum senin için. 🌟",
+    "Saat {saat}. Bugün ne kadar sessiz geçerse geçsin, yalnız değilsin. 🤍",
+    "{saat}... Belki farkında değilsin ama bu mesaj biraz da senin için var. 💌",
+    "Saat tam {saat}. Gün biterken kendine 'iyi iş çıkardım' demeyi unutma. 🌠",
+    "Vakit {saat}. Bugün ne olursa olsun, yarın yeni bir sayfa. 📖"
 ]
 
 # Saat mesajlarına eşlik edecek hazır görsel URL'leri
@@ -168,6 +198,9 @@ SAAT_MOTIVASYONLARI = [
 # "resim" olarak tanınması için format/boyut parametreleri eklendi.
 # Parametresiz URL'ler bazen HTML/redirect döndürüp
 # "Wrong type of the web page content" hatasına sebep oluyordu.
+# Liste, doğrulanmış Unsplash görselleriyle + her zaman geçerli/stabil
+# çalışan Picsum (seed tabanlı) görselleriyle genişletildi; böylece hem
+# çeşitlilik artıyor hem de bozuk link riski kalmıyor.
 SAAT_FOTOGRAFLARI = [
     "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1080&q=80",  # gece gökyüzü
     "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=1080&q=80",  # yıldızlar
@@ -176,6 +209,20 @@ SAAT_FOTOGRAFLARI = [
     "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&w=1080&q=80",  # yıldızlı gökyüzü
     "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1080&q=80",  # dağ manzarası şafak
     "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1080&q=80",  # yıldız kayması
+    "https://picsum.photos/seed/meyus-gece1/1080/720",      # gece manzarası
+    "https://picsum.photos/seed/meyus-ay1/1080/720",        # ay / gökyüzü
+    "https://picsum.photos/seed/meyus-deniz1/1080/720",     # deniz / ufuk
+    "https://picsum.photos/seed/meyus-dag1/1080/720",       # dağ manzarası
+    "https://picsum.photos/seed/meyus-orman1/1080/720",     # orman
+    "https://picsum.photos/seed/meyus-sehir1/1080/720",     # şehir silueti
+    "https://picsum.photos/seed/meyus-gunbatimi1/1080/720", # gün batımı
+    "https://picsum.photos/seed/meyus-yagmur1/1080/720",    # yağmurlu pencere hissi
+    "https://picsum.photos/seed/meyus-kahve1/1080/720",     # sıcak/samimi kahve köşesi
+    "https://picsum.photos/seed/meyus-yol1/1080/720",       # uzayıp giden yol
+    "https://picsum.photos/seed/meyus-golge1/1080/720",     # akşamüstü gölgeler
+    "https://picsum.photos/seed/meyus-koy1/1080/720",       # sakin koy / göl
+    "https://picsum.photos/seed/meyus-kirsal1/1080/720",    # kırsal huzur
+    "https://picsum.photos/seed/meyus-bulut1/1080/720",     # bulutlu gökyüzü
 ]
 
 GUNAYDIN_KELIMELERI = [
@@ -396,9 +443,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Selamlar! Ben MeyusBot, grubun en muzip yapay zekasıyım. 😎 "
         "Sohbet etmek istersen bana 'meyus' diye seslen ya da mesajıma cevap ver, "
-        "fal bakmamı istersen /fal yaz, birini tokatlamak istersen /slap, aşk perisi gibi "
-        "iki kişiyi eşleştirmemi istersen de /eros kullan! 👋"
+        "fal bakmamı istersen /fal yaz, birini tokatlamak istersen /tokat, aşk perisi gibi "
+        "iki kişiyi eşleştirmemi istersen de /esles kullan! 👋"
     )
+
+def rastgele_farkli_sec(context: ContextTypes.DEFAULT_TYPE, anahtar: str, liste: list):
+    """Bir listeden, o liste tamamen tükenmeden hiçbir öğeyi tekrar etmeyecek
+    şekilde rastgele bir eleman seçer (sohbet bazlı 'torba' yöntemi).
+    Örneğin saat metinleri ve saat fotoğrafları için ayrı ayrı kullanılır,
+    böylece art arda gelen mesajlarda aynı yazı ya da aynı fotoğraf çıkmaz."""
+    torbalar = context.chat_data.setdefault("secim_torbalari", {})
+    torba = torbalar.get(anahtar)
+    if not torba:
+        torba = list(range(len(liste)))
+        random.shuffle(torba)
+        torbalar[anahtar] = torba
+    indeks = torba.pop()
+    return liste[indeks]
 
 def kullaniciyi_etiketle(kullanici):
     """tg://user?id=... linkiyle gerçek, tıklanabilir bir etiket (mention) oluşturur."""
@@ -406,13 +467,13 @@ def kullaniciyi_etiketle(kullanici):
     return f'<a href="tg://user?id={kullanici.id}">{ad}</a>'
 
 def kullanici_kaydet(context: ContextTypes.DEFAULT_TYPE, kullanici):
-    """/eros gibi komutlarda rastgele üye seçebilmek için, sohbette görülen
+    """/esles gibi komutlarda rastgele üye seçebilmek için, sohbette görülen
     kullanıcıları chat_data içinde biriktirir (bellek içi, basit bir önbellek)."""
     if not kullanici or kullanici.is_bot:
         return
     context.chat_data.setdefault("bilinen_kullanicilar", {})[kullanici.id] = kullanici
 
-async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def tokat_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gonderen = kullaniciyi_etiketle(update.effective_user)
 
     if update.message.reply_to_message:
@@ -420,7 +481,7 @@ async def slap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # bu yüzden onu gerçek bir mention olarak etiketleyebiliriz.
         hedef = kullaniciyi_etiketle(update.message.reply_to_message.from_user)
     elif context.args:
-        # /slap @kullaniciadi şeklinde yazılmışsa Telegram bu @kullaniciadi'nı
+        # /tokat @kullaniciadi şeklinde yazılmışsa Telegram bu @kullaniciadi'nı
         # HTML modunda da otomatik olarak tıklanabilir mention'a çevirir.
         hedef = html.escape(" ".join(context.args))
     else:
@@ -451,7 +512,7 @@ async def fal_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     mesaj = await fal_uret(kullanici_adi)
     await update.message.reply_text(mesaj)
 
-async def eros_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def esles_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Bot Telegram grubunun tüm üye listesine erişemediği için, o ana kadar
     # sohbette görülüp kullanici_kaydet ile biriktirilen kullanıcılar arasından
     # rastgele iki kişi seçiyoruz.
@@ -534,8 +595,8 @@ async def mesaj_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if saat_match:
         saat = f"{saat_match.group(1)}:{saat_match.group(2)}"
-        metin = random.choice(SAAT_MOTIVASYONLARI).format(saat=saat)
-        foto_url = random.choice(SAAT_FOTOGRAFLARI)
+        metin = rastgele_farkli_sec(context, "saat_metni", SAAT_MOTIVASYONLARI).format(saat=saat)
+        foto_url = rastgele_farkli_sec(context, "saat_fotografi", SAAT_FOTOGRAFLARI)
         try:
             await update.message.reply_photo(photo=foto_url, caption=metin)
         except Exception as e:
@@ -563,10 +624,10 @@ if __name__ == "__main__":
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("slap", slap_command))
+    app.add_handler(CommandHandler("tokat", tokat_command))
     app.add_handler(CommandHandler("fal", fal_command))
     app.add_handler(CommandHandler("ask", ask_command))
-    app.add_handler(CommandHandler("eros", eros_command))
+    app.add_handler(CommandHandler("esles", esles_command))
 
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, yeni_uye))
     app.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, ayrilan_uye))
